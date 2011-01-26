@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from distutils.core import setup, Extension
+from setuptools import setup, Extension
 from distutils.command.install import install
 from distutils.command.build import build
 
@@ -152,7 +152,7 @@ class build_perl(build):
 	os.chdir('..')
 	build.run(self)
 
-class test(build):
+class testold(build):
     def run(self):
 	cwd=os.getcwd()
 	ldpath = '%s/Python-Object/blib/arch/auto/Python/Object' % cwd
@@ -188,5 +188,6 @@ setup (name        = "pyperl",
        author_email= "gisle@ActiveState.com",
        py_modules  = ['dbi', 'dbi2', 'perlpickle', 'perlmod'],
        ext_modules = ext_modules,
-       cmdclass    = { 'install': my_install, 'build': build_perl, 'test': test }
+       cmdclass    = { 'install': my_install, 'build': build_perl},
+       test_suite  = "tests"
       )
