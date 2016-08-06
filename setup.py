@@ -191,3 +191,5 @@ setup (name        = "pyperl",
        cmdclass    = { 'install': my_install, 'build': build_perl},
        test_suite  = "tests"
       )
+
+# vim:ts=4:sw=4:et
