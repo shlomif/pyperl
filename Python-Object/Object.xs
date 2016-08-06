@@ -449,15 +449,16 @@ PyObject_DelItem(o, key)
      RETVAL
 
 int
-PyObject_Compare(o1, o2)
+PyObject_RichCompareBool(o1, o2, opid)
      PyObject *o1
      PyObject *o2
+     int opid
    PREINIT:
      dCTX;
    CODE:
      ASSERT_LOCK_PERL;
      ENTER_PYTHON;
-     RETVAL = PyObject_Compare(o1, o2);
+     RETVAL = PyObject_RichCompareBool(o1, o2, opid);
      if (RETVAL == -1 && PyErr_Occurred())
     croak_on_py_exception();
      ENTER_PERL;
@@ -546,9 +547,9 @@ PyObject_Str(o,...)
      ENTER_PYTHON;
      str_o = (ix == 1) ? PyObject_Str(o) : PyObject_Repr(o);
      PERL_LOCK;
-     if (str_o && PyString_Check(str_o)) {
-    RETVAL = newSVpvn(PyString_AsString(str_o),
-              PyString_Size(str_o));    
+     if (str_o && PyUnicode_Check(str_o)) {
+    RETVAL = newSVpvn(PyUnicode_AsUTF8(str_o),
+              PyUnicode_GetLength(str_o));
      }
      else {
     RETVAL = newSV(0);
@@ -764,7 +765,7 @@ PyEval_CallObjectWithKeywords(o,...)
                         val_sv = hv_iterval(hv, entry);
 
                         ENTER_PYTHON;
-                        key = PyString_FromStringAndSize(kstr, klen);
+                        key = PyUnicode_FromStringAndSize(kstr, klen);
                         if (key == NULL)
                             goto done;
 
@@ -934,9 +935,9 @@ as_string(self,...)
     str = PyObject_Str(self->type);
         PERL_LOCK;
     RETVAL = newSVpv("", 0);
-        if (str && PyString_Check(str)) {
+        if (str && PyUnicode_Check(str)) {
         sv_catpv(RETVAL, "python.");
-            sv_catpv(RETVAL, PyString_AsString(str));
+            sv_catpv(RETVAL, PyUnicode_AsUTF8(str));
         }
         else
             sv_catpv(RETVAL, "python");
@@ -946,11 +947,11 @@ as_string(self,...)
 
         if (self->value &&
             (str = PyObject_Str(self->value)) &&
-            PyString_Check(str))
+            PyUnicode_Check(str))
         {
         PERL_LOCK;
             sv_catpv(RETVAL, ": ");
-            sv_catpv(RETVAL, PyString_AsString(str));
+            sv_catpv(RETVAL, PyUnicode_AsUTF8(str));
             PERL_UNLOCK;
         }
         Py_XDECREF(str);
@@ -990,33 +991,32 @@ SV*
 Exception(...)
       ALIAS:
     Python::Err::Exception = 1
-    Python::Err::StandardError = 2
-    Python::Err::ArithmeticError = 3
-    Python::Err::LookupError = 4
-    Python::Err::AssertionError = 5
-    Python::Err::AttributeError = 6
-    Python::Err::EOFError = 7
-    Python::Err::FloatingPointError = 8
-    Python::Err::EnvironmentError = 9
-    Python::Err::IOError = 10
-    Python::Err::OSError = 11
-    Python::Err::ImportError = 12
-    Python::Err::IndexError = 13
-    Python::Err::KeyError = 14
-    Python::Err::KeyboardInterrupt = 15
-    Python::Err::MemoryError = 16
-    Python::Err::NameError = 17
-    Python::Err::OverflowError = 18
-    Python::Err::RuntimeError = 19
-    Python::Err::NotImplementedError = 20
-    Python::Err::SyntaxError = 21
-    Python::Err::SystemError = 22
-    Python::Err::SystemExit = 23
-    Python::Err::TypeError = 24
-    Python::Err::UnboundLocalError = 25
-    Python::Err::UnicodeError = 26
-    Python::Err::ValueError = 27
-    Python::Err::ZeroDivisionError = 28
+    Python::Err::ArithmeticError = 2
+    Python::Err::LookupError = 3
+    Python::Err::AssertionError = 4
+    Python::Err::AttributeError = 5
+    Python::Err::EOFError = 6
+    Python::Err::FloatingPointError = 7
+    Python::Err::EnvironmentError = 8
+    Python::Err::IOError = 9
+    Python::Err::OSError = 10
+    Python::Err::ImportError = 11
+    Python::Err::IndexError = 12
+    Python::Err::KeyError = 13
+    Python::Err::KeyboardInterrupt = 14
+    Python::Err::MemoryError = 15
+    Python::Err::NameError = 16
+    Python::Err::OverflowError = 17
+    Python::Err::RuntimeError = 18
+    Python::Err::NotImplementedError = 19
+    Python::Err::SyntaxError = 20
+    Python::Err::SystemError = 21
+    Python::Err::SystemExit = 22
+    Python::Err::TypeError = 23
+    Python::Err::UnboundLocalError = 24
+    Python::Err::UnicodeError = 25
+    Python::Err::ValueError = 26
+    Python::Err::ZeroDivisionError = 27
       PREINIT:
         dCTX;
     PyObject* e;
@@ -1026,35 +1026,34 @@ Exception(...)
         croak("Usage: Python::Err:Exception( [ OBJ ] )");
     switch (ix) {
     case  1: e = PyExc_Exception; break;
-    case  2: e = PyExc_StandardError; break;
-    case  3: e = PyExc_ArithmeticError; break;
-    case  4: e = PyExc_LookupError; break;
-    case  5: e = PyExc_AssertionError; break;
-    case  6: e = PyExc_AttributeError; break;
-    case  7: e = PyExc_EOFError; break;
-    case  8: e = PyExc_FloatingPointError; break;
-    case  9: e = PyExc_EnvironmentError; break;
-    case 10: e = PyExc_IOError; break;
-    case 11: e = PyExc_OSError; break;
-    case 12: e = PyExc_ImportError; break;
-    case 13: e = PyExc_IndexError; break;
-    case 14: e = PyExc_KeyError; break;
-    case 15: e = PyExc_KeyboardInterrupt; break;
-    case 16: e = PyExc_MemoryError; break;
-    case 17: e = PyExc_NameError; break;
-    case 18: e = PyExc_OverflowError; break;
-    case 19: e = PyExc_RuntimeError; break;
-    case 20: e = PyExc_NotImplementedError; break;
-    case 21: e = PyExc_SyntaxError; break;
-    case 22: e = PyExc_SystemError; break;
-    case 23: e = PyExc_SystemExit; break;
-    case 24: e = PyExc_TypeError; break;
+    case  2: e = PyExc_ArithmeticError; break;
+    case  3: e = PyExc_LookupError; break;
+    case  4: e = PyExc_AssertionError; break;
+    case  5: e = PyExc_AttributeError; break;
+    case  6: e = PyExc_EOFError; break;
+    case  7: e = PyExc_FloatingPointError; break;
+    case  8: e = PyExc_EnvironmentError; break;
+    case  9: e = PyExc_IOError; break;
+    case 10: e = PyExc_OSError; break;
+    case 11: e = PyExc_ImportError; break;
+    case 12: e = PyExc_IndexError; break;
+    case 13: e = PyExc_KeyError; break;
+    case 14: e = PyExc_KeyboardInterrupt; break;
+    case 15: e = PyExc_MemoryError; break;
+    case 16: e = PyExc_NameError; break;
+    case 17: e = PyExc_OverflowError; break;
+    case 18: e = PyExc_RuntimeError; break;
+    case 19: e = PyExc_NotImplementedError; break;
+    case 20: e = PyExc_SyntaxError; break;
+    case 21: e = PyExc_SystemError; break;
+    case 22: e = PyExc_SystemExit; break;
+    case 23: e = PyExc_TypeError; break;
 #if PY_MAJOR_VERSION >= 1 && PY_MINOR_VERSION >= 6
-    case 25: e = PyExc_UnboundLocalError; break;
-    case 26: e = PyExc_UnicodeError; break;
+    case 24: e = PyExc_UnboundLocalError; break;
+    case 25: e = PyExc_UnicodeError; break;
 #endif
-    case 27: e = PyExc_ValueError; break;
-    case 28: e = PyExc_ZeroDivisionError; break;
+    case 26: e = PyExc_ValueError; break;
+    case 27: e = PyExc_ZeroDivisionError; break;
     default: croak("Bad exception selector (%d)", (int)ix); break;
     }
     if (items) {
