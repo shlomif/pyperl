@@ -22,12 +22,12 @@ extern void initperl()
     npath = PyList_Size(path);
     for (i = 0; i < npath; i++) {
 	PyObject *v = PyList_GetItem(path, i);
-	if (!PyString_Check(v))
+	if (!PyUnicode_Check(v))
 	    continue;
-	len = PyString_Size(v);
+	len = PyUnicode_GetLength(v);
 	if (len + 10 >= sizeof(buf))
 	    continue; /* Too long */
-	strcpy(buf, PyString_AsString(v));
+	strcpy(buf, PyUnicode_AsUTF8(v));
 	if (buf[0] != '/')
 	    continue; /* Not absolute */
 	if (strlen(buf) != len)

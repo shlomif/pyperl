@@ -131,7 +131,7 @@ pysvrv_has_key(PySVRV *self, PyObject *args)
     exists = hv_exists((HV*)SvRV(self->rv), key, keylen);
 
     ENTER_PYTHON;
-    return PyInt_FromLong(exists);
+    return PyLong_FromLong(exists);
 }
 
 
@@ -168,7 +168,7 @@ do_hash_kv(HV* hv, bool do_keys, bool do_values)
 	    I32 klen;
 	    char *kstr = hv_iterkey(entry, &klen);
 	    ENTER_PYTHON;
-	    k = PyString_FromStringAndSize(kstr, klen);
+	    k = PyUnicode_FromStringAndSize(kstr, klen);
 	    if (k == NULL)
 		goto FAIL;
 	    ENTER_PERL;
@@ -223,7 +223,7 @@ pysvrv_keys(PySVRV *self, PyObject *args)
     CHECK_OWNED_PY;
 
     ASSERT_LOCK_PYTHON;
-    if (!PyArg_NoArgs(args))
+    if (!PyArg_Parse(args, ""))
 	return NULL;
     assert(SvTYPE(SvRV(self->rv)) == SVt_PVHV);
     return do_hash_kv((HV*)SvRV(self->rv), TRUE, FALSE);
@@ -237,7 +237,7 @@ pysvrv_values(PySVRV *self, PyObject *args)
     CHECK_OWNED_PY;
 
     ASSERT_LOCK_PYTHON;
-    if (!PyArg_NoArgs(args))
+    if (!PyArg_Parse(args, ""))
 	return NULL;
     assert(SvTYPE(SvRV(self->rv)) == SVt_PVHV);
     return do_hash_kv((HV*)SvRV(self->rv), FALSE, TRUE);
@@ -251,7 +251,7 @@ pysvrv_items(PySVRV *self, PyObject *args)
     SET_CUR_PERL;
 #endif
     ASSERT_LOCK_PYTHON;
-    if (!PyArg_NoArgs(args))
+    if (!PyArg_Parse(args, ""))
 	return NULL;
     assert(SvTYPE(SvRV(self->rv)) == SVt_PVHV);
     return do_hash_kv((HV*)SvRV(self->rv), TRUE, TRUE);
@@ -344,7 +344,7 @@ pysvrv_clear(PySVRV *self, PyObject *args)
 
     ASSERT_LOCK_PYTHON;
     CHECK_OWNED_PY;
-    if (!PyArg_NoArgs(args))
+    if (!PyArg_Parse(args, ""))
 	return NULL;
 
     ENTER_PERL;
@@ -371,7 +371,7 @@ pysvrv_copy(PySVRV *self, PyObject *args)
 
     ASSERT_LOCK_PYTHON;
     CHECK_OWNED_PY;
-    if (!PyArg_NoArgs(args))
+    if (!PyArg_Parse(args, ""))
 	return NULL;
 
     ENTER_PERL;
@@ -871,7 +871,7 @@ array_index(AV* av, PyObject *v)
 	    PERL_LOCK;
 	    x = sv2pyo(*svp);
 	    PERL_UNLOCK;
-	    cmp = PyObject_Compare(x, v);
+	    cmp = PyObject_RichCompareBool(x, v, Py_EQ);
 	    Py_DECREF(x);
 	    if (cmp == 0) {
 		ENTER_PERL;
@@ -961,7 +961,7 @@ pysvrv_index(PySVRV *self, PyObject *args)
     }
 
     ASSERT_LOCK_PYTHON;
-    return PyInt_FromLong((long)index);
+    return PyLong_FromLong((long)index);
 }
 
 static PyObject*
@@ -996,7 +996,7 @@ pysvrv_count(PySVRV *self, PyObject *args)
 	    PERL_LOCK;
 	    x = sv2pyo(*svp);
 	    PERL_UNLOCK;
-	    cmp = PyObject_Compare(x, v);
+	    cmp = PyObject_RichCompareBool(x, v, Py_EQ);
 	    Py_DECREF(x);
 	    if (cmp == 0)
 		count++;
@@ -1010,7 +1010,7 @@ pysvrv_count(PySVRV *self, PyObject *args)
 	    count++;
     }
     ENTER_PYTHON;
-    return PyInt_FromLong((long)count);
+    return PyLong_FromLong((long)count);
 }
 
 static PyObject*
@@ -1022,7 +1022,7 @@ pysvrv_reverse(PySVRV *self, PyObject *args)
 
     ASSERT_LOCK_PYTHON;
     CHECK_OWNED_PY;
-    if (!PyArg_NoArgs(args))
+    if (!PyArg_Parse(args, ""))
 	return NULL;
 
     ENTER_PERL;
@@ -1086,7 +1086,7 @@ pysvrv_av_alloc(PySVRV *self, PyObject *args)
     SET_CUR_PERL;
     CHECK_OWNED_PY;
 
-    if (!PyArg_NoArgs(args))
+    if (!PyArg_Parse(args, ""))
 	return NULL;
 
     ENTER_PERL;
@@ -1102,15 +1102,16 @@ pysvrv_av_alloc(PySVRV *self, PyObject *args)
     if (t == NULL) 
 	return NULL;
 
-    PyTuple_SetItem(t, 0, PyInt_FromLong(left));
-    PyTuple_SetItem(t, 1, PyInt_FromLong(middle));
-    PyTuple_SetItem(t, 2, PyInt_FromLong(right));
+    PyTuple_SetItem(t, 0, PyLong_FromLong(left));
+    PyTuple_SetItem(t, 1, PyLong_FromLong(middle));
+    PyTuple_SetItem(t, 2, PyLong_FromLong(right));
     ASSERT_LOCK_PYTHON;
     return t;
 }
 
 
-static PyMethodDef mapp_methods[] = {
+static PyMethodDef pysvrv_methods[] = {
+    /* mapp_methods */
     {"has_key",	(PyCFunction)pysvrv_has_key, METH_VARARGS},
     {"keys",	(PyCFunction)pysvrv_keys,    0},
     {"items",	(PyCFunction)pysvrv_items,   0},
@@ -1119,6 +1120,18 @@ static PyMethodDef mapp_methods[] = {
     {"clear",	(PyCFunction)pysvrv_clear,   0},
     {"copy",	(PyCFunction)pysvrv_copy,    0},
     {"get",     (PyCFunction)pysvrv_get,     METH_VARARGS},
+    /* list_methods */
+    {"append",	(PyCFunction)pysvrv_append,  METH_VARARGS},
+    {"insert",	(PyCFunction)pysvrv_insert,  METH_VARARGS},
+    {"extend",  (PyCFunction)pysvrv_extend,  METH_VARARGS},
+    {"pop",	(PyCFunction)pysvrv_pop,     METH_VARARGS},
+    {"remove",	(PyCFunction)pysvrv_remove,  METH_VARARGS},
+    {"index",	(PyCFunction)pysvrv_index,   METH_VARARGS},
+    {"count",	(PyCFunction)pysvrv_count,   METH_VARARGS},
+    {"reverse",	(PyCFunction)pysvrv_reverse, 0},
+    {"sort",	(PyCFunction)pysvrv_sort,    METH_VARARGS},
+    {"av_alloc",(PyCFunction)pysvrv_av_alloc,0},
+
   {NULL, NULL} /* sentinel */
 };
 
@@ -1138,24 +1151,28 @@ static PyMethodDef list_methods[] = {
 
 
 static PyObject*
-pysvrv_getattr(PySVRV *self, char *name)
+pysvrv_getattro(PySVRV *self, PyObject *nameobj)
 {
     PyObject *val;
     dCTXP;
+    char *name = "";
 
     ASSERT_LOCK_PYTHON;
     CHECK_OWNED_PY;
     SET_CUR_PERL;
 
+    if (PyUnicode_Check(nameobj))
+	name = PyUnicode_AsUTF8(nameobj);
+
     if (strcmp(name, "__wantarray__") == 0) {
 	if (self->gimme == G_VOID)
 	    val = Py_BuildValue(""); /* None */
 	else 
-	    val = PyInt_FromLong((long)(self->gimme == G_ARRAY));
+	    val = PyLong_FromLong((long)(self->gimme == G_ARRAY));
     }
     else if (strcmp(name, "__methodname__") == 0) {
 	if (self->methodname)
-	    val = PyString_FromString(self->methodname);
+	    val = PyUnicode_FromString(self->methodname);
 	else
 	    val = Py_BuildValue(""); /* None */
     }
@@ -1166,7 +1183,7 @@ pysvrv_getattr(PySVRV *self, char *name)
 	if (SvOBJECT(sv)) {
 	    char *klass = HvNAME(SvSTASH(sv));
 	    ENTER_PYTHON;
-	    val = PyString_FromString(klass);
+	    val = PyUnicode_FromString(klass);
 	}
 	else {
 	    ENTER_PYTHON;
@@ -1178,7 +1195,7 @@ pysvrv_getattr(PySVRV *self, char *name)
 	ENTER_PERL;
 	tmp = sv_reftype(SvRV(self->rv), 0);
 	ENTER_PYTHON;
-	val = PyString_FromString(tmp);
+	val = PyUnicode_FromString(tmp);
     }
     else if (strcmp(name, "__value__") == 0) {
 	SV *sv = SvRV(self->rv);
@@ -1196,7 +1213,7 @@ pysvrv_getattr(PySVRV *self, char *name)
 	}
     }
     else if (strcmp(name, "__readonly__") == 0) {
-	val = PyInt_FromLong(SvREADONLY(SvRV(self->rv)) != 0);
+	val = PyLong_FromLong(SvREADONLY(SvRV(self->rv)) != 0);
     }
     else if (self->methodname) {
 	PyErr_SetString(PyExc_AttributeError, name);
@@ -1222,11 +1239,8 @@ pysvrv_getattr(PySVRV *self, char *name)
 	PERL_UNLOCK;
 	val = (PyObject *)method_obj;
     }
-    else if (SvTYPE(SvRV(self->rv)) == SVt_PVAV) {
-	val = Py_FindMethod(list_methods, (PyObject *)self, name);
-    }
-    else if (SvTYPE(SvRV(self->rv)) == SVt_PVHV) {
-	val = Py_FindMethod(mapp_methods, (PyObject *)self, name);
+    else if (SvTYPE(SvRV(self->rv)) == SVt_PVAV || SvTYPE(SvRV(self->rv)) == SVt_PVHV) {
+	val = PyObject_GenericGetAttr((PyObject *)self, nameobj);
     }
     else {
 	PyErr_SetString(PyExc_AttributeError, name);
@@ -1238,14 +1252,18 @@ pysvrv_getattr(PySVRV *self, char *name)
 }
 
 static int
-pysvrv_setattr(PySVRV *self, char *name, PyObject *val)
+pysvrv_setattro(PySVRV *self, PyObject *nameobj, PyObject *val)
 {
     int status;
     dCTXP;
+    char *name = "";
 
     ASSERT_LOCK_PYTHON;
     CHECK_OWNED_INT;
     SET_CUR_PERL;
+
+    if (PyUnicode_Check(nameobj))
+	name = PyUnicode_AsUTF8(nameobj);
 
     if (strcmp(name, "__wantarray__") == 0) {
 	if (val == Py_None)
@@ -1255,12 +1273,12 @@ pysvrv_setattr(PySVRV *self, char *name, PyObject *val)
 	status = 0;
     }
     else if (strcmp(name, "__methodname__") == 0) {
-	if (PyString_Check(val)) {
+	if (PyUnicode_Check(val)) {
 	    PERL_LOCK;
 	    Safefree(self->methodname);
-	    New(998, self->methodname, PyString_GET_SIZE(val)+1, char);
-	    Copy(PyString_AS_STRING(val), self->methodname,
-		 PyString_GET_SIZE(val)+1, char);
+	    New(998, self->methodname, PyUnicode_GetLength(val)+1, char);
+	    Copy(PyUnicode_AsUTF8(val), self->methodname,
+		 PyUnicode_GetLength(val)+1, char);
 	    PERL_UNLOCK;
 	    status = 0;
 	}
@@ -1270,8 +1288,8 @@ pysvrv_setattr(PySVRV *self, char *name, PyObject *val)
 	}
     }
     else if (strcmp(name, "__class__") == 0) {
-	if (PyString_Check(val)) {
-	    char *klass = PyString_AsString(val);
+	if (PyUnicode_Check(val)) {
+	    char *klass = PyUnicode_AsUTF8(val);
 	    ENTER_PERL;
 	    sv_bless(self->rv, gv_stashpv(klass, 1));
 	    ENTER_PYTHON;
@@ -1376,7 +1394,7 @@ pysvrv_repr(PySVRV *self)
     sv_catpvn(tmp_sv, ">", 1);
     ENTER_PYTHON;
 
-    o = PyString_FromStringAndSize(SvPVX(tmp_sv), SvCUR(tmp_sv));
+    o = PyUnicode_FromStringAndSize(SvPVX(tmp_sv), SvCUR(tmp_sv));
     SvREFCNT_dec(tmp_sv);
 
     ASSERT_LOCK_PYTHON;
@@ -1439,7 +1457,7 @@ pysvrv_length(PySVRV *self)
 }
 
 static int
-pysvrv_nonzero(PySVRV *self)
+pysvrv_bool(PySVRV *self)
 {
     SV* sv;
     int v;
@@ -1505,8 +1523,8 @@ pysvrv_subscript(PySVRV *self, PyObject *key)
     sv = SvRV(self->rv);
     if (SvTYPE(sv) == SVt_PVAV) {
 	I32 index;
-	if (PyInt_Check(key))
-	    index = PyInt_AsLong(key);
+	if (PyLong_Check(key))
+	    index = PyLong_AsLong(key);
 	else if (PyLong_Check(key)) {
 	    index = PyLong_AsLong(key);
 	    if (index == -1 && PyErr_Occurred())
@@ -1521,10 +1539,10 @@ pysvrv_subscript(PySVRV *self, PyObject *key)
     }
     else if (SvTYPE(sv) == SVt_PVHV) {
 	HV* hv = (HV*)sv;
-	if (PyString_Check(key)) {
+	if (PyUnicode_Check(key)) {
 	    SV** svp;
 	    ENTER_PERL;
-	    svp = hv_fetch(hv, PyString_AsString(key), PyString_Size(key), 0);
+	    svp = hv_fetch(hv, PyUnicode_AsUTF8(key), PyUnicode_GetLength(key), 0);
 	    if (svp) {
 		SvGETMAGIC(*svp);
 		PYTHON_LOCK;
@@ -1572,8 +1590,8 @@ pysvrv_ass_sub(PySVRV *self, PyObject *key, PyObject *val)
 	SV* val_sv;
 	SV** svp;
 
-	if (PyInt_Check(key))
-	    index = PyInt_AsLong(key);
+	if (PyLong_Check(key))
+	    index = PyLong_AsLong(key);
 	else if (PyLong_Check(key)) {
 	    index = PyLong_AsLong(key);
 	    if (index == -1 && PyErr_Occurred())
@@ -1617,9 +1635,9 @@ pysvrv_ass_sub(PySVRV *self, PyObject *key, PyObject *val)
     }
     else if (SvTYPE(sv) == SVt_PVHV) {
 	HV* hv = (HV*)sv;
-	if (PyString_Check(key)) {
-	    char *key_str = PyString_AsString(key);
-	    int   key_len = PyString_Size(key);
+	if (PyUnicode_Check(key)) {
+	    char *key_str = PyUnicode_AsUTF8(key);
+	    int   key_len = PyUnicode_GetLength(key);
 	    if (val) {
 		SV* val_sv;
 		SV** svp;
@@ -1974,14 +1992,13 @@ static PyNumberMethods pysvrv_as_number = {
 	0,	/*nb_add*/
 	0,	/*nb_subtract*/
 	0,	/*nb_multiply*/
-	0,	/*nb_divide*/
 	0,	/*nb_remainder*/
 	0,	/*nb_divmod*/
 	0,	/*nb_power*/
 	0,	/*nb_negative*/
 	0,	/*nb_positive*/
 	0,	/*nb_absolute*/
-	(inquiry)pysvrv_nonzero,	/*nb_nonzero*/
+	(inquiry)pysvrv_bool,	/*nb_bool*/
 	0,	/*nb_invert*/
 	0,	/*nb_lshift*/
 	0,	/*nb_rshift*/
@@ -2016,22 +2033,18 @@ static PySequenceMethods pysvrv_as_sequence = {
 
 //XXX must compile as a C++ file on Windows
 PyTypeObject SVRVtype = {
-    PyObject_HEAD_INIT(&PyType_Type)
-    0,			         /* Number of items for varobject */
-    "perl ref",		         /* Name of this type */
-    sizeof(PyTypeObject),	 /* Basic object size */
-    0,			         /* Item size for varobject */
-    (destructor)pysvrv_dealloc,  /*tp_dealloc*/
-    0,                           /*tp_print*/
-    (getattrfunc)pysvrv_getattr, /*tp_getattr*/
-    (setattrfunc)pysvrv_setattr, /*tp_setattr*/
-    0,                           /*tp_compare*/
-    (reprfunc)pysvrv_repr,       /*tp_repr*/
-    &pysvrv_as_number,	         /*tp_as_number*/
-    &pysvrv_as_sequence,         /*tp_as_sequence*/
-    &pysvrv_as_mapping,	         /*tp_as_mapping*/
-    0,                           /*tp_hash*/
-    (ternaryfunc)pysvrv_call,    /*tp_call*/
+    PyVarObject_HEAD_INIT(&PyType_Type, 0)
+    .tp_name = "perl ref",
+    .tp_itemsize = sizeof(PyTypeObject),
+    .tp_dealloc = (destructor)pysvrv_dealloc, 
+    .tp_repr = (reprfunc)pysvrv_repr,
+    .tp_as_number = &pysvrv_as_number,
+    .tp_as_sequence = &pysvrv_as_sequence,
+    .tp_as_mapping = &pysvrv_as_mapping,
+    .tp_call = (ternaryfunc)pysvrv_call,
+    .tp_getattro = (getattrofunc)pysvrv_getattro,
+    .tp_setattro = (setattrofunc)pysvrv_setattro,
+    .tp_methods = pysvrv_methods,
 };
 
 #ifdef __cplusplus
