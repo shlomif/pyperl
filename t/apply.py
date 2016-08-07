@@ -3,7 +3,7 @@ import perl
 #    print "1..0"
 #    raise SystemExit
 
-print "1..14"
+print("1..14")
 
 def ok(a, b=None):
     return "a=" + str(a) + ", b=" + str(b)

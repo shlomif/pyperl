@@ -1,4 +1,4 @@
-print "1..14"
+print("1..14")
 
 class Foo:
     plain = 34

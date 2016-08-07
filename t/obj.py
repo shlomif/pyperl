@@ -3,7 +3,7 @@ import perl
 #	print "1..0"
 #	raise SystemExit
 
-print "1..6"
+print("1..6")
 
 perl.eval("use lib 't'")     # good when running from ..
 perl.eval("use TestClass")
@@ -16,26 +16,26 @@ obj = perl.callm("new", "TestClass")
 
 # Test plain method calls
 
-if obj.foo(42) != None: print "not",
-print "ok 1"
+if obj.foo(42) != None: print("not", end=' ')
+print("ok 1")
 
-if obj.foo() != 42: print "not",
-print "ok 2"
+if obj.foo() != 42: print("not", end=' ')
+print("ok 2")
 
 my_dict = {}
 obj.foo(my_dict)
 
-if obj.foo() is not my_dict: print "not",
-print "ok 3"
+if obj.foo() is not my_dict: print("not", end=' ')
+print("ok 3")
 
 obj.foo(obj.newhash("key", 42))
 try:
 	obj.dump()
-except perl.PerlError, v:
-	print v
+except perl.PerlError as v:
+	print(v)
 
-if int(obj.hash_deref(obj.foo(), "key")) != 42: print "not",
-print "ok 4"
+if int(obj.hash_deref(obj.foo(), "key")) != 42: print("not", end=' ')
+print("ok 4")
 
 # calling in scalar/array context
 #print obj.localtime()
@@ -51,13 +51,13 @@ class Foo:
 
 p_obj = Foo()
 x = obj.callback(p_obj, "foo", 3)
-if x != 4: print "not",
-print "ok 5"
+if x != 4: print("not", end=' ')
+print("ok 5")
 
 try:
    obj.callback(p_obj, "foo", 0)
-except ZeroDivisionError, v:
-   if str(v) != "integer division or modulo by zero": print "not",
-   print "ok 6"
+except ZeroDivisionError as v:
+   if str(v) != "integer division or modulo by zero": print("not", end=' ')
+   print("ok 6")
 
 
