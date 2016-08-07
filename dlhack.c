@@ -12,8 +12,6 @@ extern void PyInit_perl()
     int i, npath;
     size_t len;
     char buf[1024];
-    char *modpath;
-    const char **dlft;
     struct stat sb;
 
     PyObject *path = PySys_GetObject("path");
