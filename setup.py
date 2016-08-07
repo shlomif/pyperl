@@ -97,8 +97,8 @@ else:
             ))
 
 
-        if MULTI_PERL:
-            cc_extra.append("-DMULTI_PERL")
+if MULTI_PERL:
+    cc_extra.append("-DMULTI_PERL")
     sources.append('thrd_ctx.c')
 
 if not os.path.isfile("try_perlapi.c") or \
