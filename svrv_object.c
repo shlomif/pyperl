@@ -2036,7 +2036,7 @@ PyTypeObject SVRVtype = {
     PyVarObject_HEAD_INIT(&PyType_Type, 0)
     .tp_name = "perl ref",
     .tp_itemsize = sizeof(PyTypeObject),
-    .tp_dealloc = (destructor)pysvrv_dealloc, 
+    .tp_dealloc = (destructor)pysvrv_dealloc,
     .tp_repr = (reprfunc)pysvrv_repr,
     .tp_as_number = &pysvrv_as_number,
     .tp_as_sequence = &pysvrv_as_sequence,

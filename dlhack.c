@@ -6,16 +6,15 @@
  * make the symbols available for extension modules that perl might load.
  */
 
-/* FIXME: was unable to find strings exported anywhere else... */
-extern const char **_PyImport_DynLoadFiletab;
-
 extern void PyInit_perl()
 {
     void* handle;
-    int i, npath, len;
+    int i, npath;
+    size_t len;
     char buf[1024];
     char *modpath;
     const char **dlft;
+    struct stat sb;
 
     PyObject *path = PySys_GetObject("path");
     if (path == NULL || !PyList_Check(path)) {
@@ -37,24 +36,21 @@ extern void PyInit_perl()
 	    continue; /* Not absolute */
 	if (strlen(buf) != len)
 	    continue; /* v contains '\0' */
-	modpath = stpcpy(buf+len, "/perl2");
-	dlft = &_PyImport_DynLoadFiletab[0];
-	while (*((const char*)dlft)) {
-	    strcpy(modpath, (const char*)dlft++);
-	    if ((handle = dlopen(buf, RTLD_NOW | RTLD_GLOBAL)))
-		break;
-	}
 
-	if (handle) {
-	    void (*f)() = dlsym(handle, "PyInit_perl2");
-	    if (f) {
-		f();
-	    }
-	    else {
-		PyErr_SetString(PyExc_ImportError, "PyInit_perl2 entry point not found");
-	    }
-	    return;
-	}
+	strcpy(buf+len, "/perl2" EXT_SUFFIX);
+
+	if (!stat(buf, &sb) && (handle = dlopen(buf, RTLD_NOW | RTLD_GLOBAL)))
+		break;
     }
-    PyErr_SetString(PyExc_ImportError, dlerror());
+
+    if (handle) {
+	void (*f)() = dlsym(handle, "PyInit_perl2");
+
+	if (f)
+	    f();
+	else
+	    PyErr_SetString(PyExc_ImportError, "PyInit_perl2 entry point not found");
+    }
+    else
+	PyErr_SetString(PyExc_ImportError, dlerror());
 }

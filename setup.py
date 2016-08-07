@@ -3,6 +3,7 @@
 from setuptools import setup, Extension
 from distutils.command.install import install
 from distutils.command.build import build
+import sysconfig
 
 DEBUG = 0
 perl = 'perl'
@@ -90,8 +91,10 @@ else:
     p.close()
     if dlsrc == "dlsrc='dl_dlopen.xs';\n":
         ext_name = "perl2"
-        cc_extra.append("-DDL_HACK")
+        cc_extra.append('-DDL_HACK')
+        cc_extra.append('-DEXT_SUFFIX="' + sysconfig.get_config_var("EXT_SUFFIX") + '"')
         extra_ext.append(Extension(name = "perl",
+            extra_compile_args = cc_extra,
             sources = ["dlhack.c"],
             libraries= ["dl"],
             ))
