@@ -6,7 +6,7 @@
  * make the symbols available for extension modules that perl might load.
  */
 
-extern void PyInit_perl()
+extern PyMODINIT_FUNC PyInit_perl()
 {
     void* handle;
     int i, npath;
@@ -18,7 +18,7 @@ extern void PyInit_perl()
     if (path == NULL || !PyList_Check(path)) {
 	PyErr_SetString(PyExc_ImportError,
 			"sys.path must be a list of directory names");
-	return;
+	return NULL;
     }
 
     npath = PyList_Size(path);
@@ -42,13 +42,15 @@ extern void PyInit_perl()
     }
 
     if (handle) {
-	void (*f)() = dlsym(handle, "PyInit_perl2");
+	PyMODINIT_FUNC (*f)() = dlsym(handle, "PyInit_perl2");
 
 	if (f)
-	    f();
+	    return f();
 	else
 	    PyErr_SetString(PyExc_ImportError, "PyInit_perl2 entry point not found");
     }
     else
 	PyErr_SetString(PyExc_ImportError, dlerror());
+
+    return NULL;
 }

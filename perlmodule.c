@@ -750,7 +750,7 @@ static struct PyModuleDef ModuleDef = {
         NULL
 };
 
-void
+PyMODINIT_FUNC
 #ifdef DL_HACK
 PyInit_perl2()
 #else
@@ -784,6 +784,9 @@ PyInit_perl()
      */
 
     m = PyModule_Create(&ModuleDef);
+    if (m == NULL)
+	    return NULL;
+
     d = PyModule_GetDict(m);
     PerlError = PyErr_NewException("perl.PerlError", NULL, NULL);
     PyDict_SetItemString(d, "PerlError", PerlError);
@@ -792,4 +795,6 @@ PyInit_perl()
 #else
     PyDict_SetItemString(d, "MULTI_PERL", PyLong_FromLong(0));
 #endif
+
+    return m;
 }
