@@ -456,7 +456,7 @@ array_splice(AV* av, I32 offset, I32 len, I32 newlen)
 
     ASSERT_LOCK_PERL;
     SET_CUR_PERL;
-/* #define SPLICE_DEBUG  /* */
+/* #define SPLICE_DEBUG  */
     asize = av_len(av) + 1;
     if (offset < 0)
 	offset += asize;
