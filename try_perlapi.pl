@@ -31,7 +31,8 @@ print C <<EOT if $ENABLE_JMPENV;
 
 static LOGOP dummy_op;
 
-void fake_inittry()
+void
+fake_inittry(void)
 {
     Zero(&dummy_op, 1, LOGOP);
     dummy_op.op_flags |= OPf_WANT_SCALAR;
@@ -39,7 +40,7 @@ void fake_inittry()
 }
 
 static void
-fake_entertry()
+fake_entertry(void)
 {
     PERL_CONTEXT *cx;
     I32 gimme;
@@ -81,6 +82,8 @@ fake_leavetry(I32 oldscope)
 }
 
 EOT
+
+print H "void \tfake_inittry(void);\n";
 
 while (<DATA>) {
     if (/^(\w.*?)(\w+)\(([^)]*)\)\s*$/) {
