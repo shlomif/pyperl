@@ -12,6 +12,7 @@
 #include "svrv_object.h"
 #include "lang_lock.h"
 #include "lang_map.h"
+#include "try_perlapi.h"
 
 static PyObject *PerlError;
 extern void xs_init (pTHXo);
