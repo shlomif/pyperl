@@ -889,7 +889,7 @@ raise(type, value)
 BOOT:
 #ifdef BOOT_FROM_PERL
     Py_Initialize();
-    initperl();
+    PyInit_perl();
     {
         dCTX;
         PYTHON_UNLOCK;

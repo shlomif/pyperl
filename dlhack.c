@@ -6,7 +6,7 @@
  * make the symbols available for extension modules that perl might load.
  */
 
-extern void initperl()
+extern void PyInit_perl()
 {
     void* handle;
     int i, npath, len;
@@ -36,12 +36,12 @@ extern void initperl()
 
 	handle = dlopen(buf, RTLD_NOW | RTLD_GLOBAL);
 	if (handle) {
-	    void (*f)() = dlsym(handle, "initperl2");
+	    void (*f)() = dlsym(handle, "PyInit_perl2");
 	    if (f) {
 		f();
 	    }
 	    else {
-		PyErr_SetString(PyExc_ImportError, "initperl2 entry point not found");
+		PyErr_SetString(PyExc_ImportError, "PyInit_perl2 entry point not found");
 	    }
 	    return;
 	}

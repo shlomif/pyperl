@@ -752,9 +752,9 @@ static struct PyModuleDef ModuleDef = {
 
 void
 #ifdef DL_HACK
-initperl2()
+PyInit_perl2()
 #else
-initperl()
+PyInit_perl()
 #endif
 {
     PyObject *m, *d;
