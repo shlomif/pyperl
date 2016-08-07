@@ -34,12 +34,12 @@ sub foo2 {
         # try to trap exceptions
         try:
             perl.eval("die 'Oops!'")
-        except perl.PerlError, val:
-	    self.assertEquals(str(val)[:5],"Oops!")
+        except perl.PerlError as val:
+            self.assertEquals(str(val)[:5],"Oops!")
 
         try:
             perl.call("not_there", 3, 4)
-        except perl.PerlError, val:
+        except perl.PerlError as val:
             self.assertEquals(str(val), "Undefined subroutine &main::not_there called.\n")
 
 
@@ -51,8 +51,8 @@ sub foo2 {
         res = perl.call_tuple("foo2")
         self.assertEquals(len(res), 3)
         self.assertEquals(res[0], 1)
-	self.assertEquals(res[1], 2)
-	self.assertEquals(res[2], 3)
+        self.assertEquals(res[1], 2)
+        self.assertEquals(res[2], 3)
 
     def test_anonymous_perl_functions(self):
         # can we call anonymous perl functions
