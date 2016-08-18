@@ -41,5 +41,5 @@ WriteMakefile(
     VERSION_FROM => 'Object.pm',
     INC          => $pyinc,
     @extra,
-    dist         => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
+    dist         => { COMPRESS => 'xz -9f', SUFFIX => 'xz', },
 );
