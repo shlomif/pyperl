@@ -708,8 +708,8 @@ pysvrv_extend(PySVRV *self, PyObject *args)
 {
     PyObject *o;
     AV* av;
-    int n, i;
-    STRLEN size;
+    int n;
+    STRLEN size, i;
     dCTXP;
 
     ASSERT_LOCK_PYTHON;
