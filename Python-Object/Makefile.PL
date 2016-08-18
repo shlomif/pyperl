@@ -1,8 +1,8 @@
 use ExtUtils::MakeMaker;
 
-chomp(my $pyinc = `python-config --includes`);
-chomp(my $pylib = `python-config --libs`);
-chomp(my $pysitelib = `python -c 'from distutils.sysconfig import get_python_lib; print(get_python_lib(1))'`);
+chomp(my $pyinc = `python3-config --includes`);
+chomp(my $pylib = `python3-config --libs`);
+chomp(my $pysitelib = `python3 -c 'from distutils.sysconfig import get_python_lib; print(get_python_lib(1))'`);
 
 my @define;
 my @libs;
