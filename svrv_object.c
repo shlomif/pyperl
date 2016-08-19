@@ -1197,12 +1197,14 @@ pysvrv_getattro(PySVRV *self, PyObject *nameobj)
 	    val = Py_BuildValue(""); /* None */
 	else 
 	    val = PyLong_FromLong((long)(self->gimme == G_ARRAY));
+	goto success;
     }
     else if (strcmp(name, "__methodname__") == 0) {
 	if (self->methodname)
 	    val = PyUnicode_FromString(self->methodname);
 	else
 	    val = Py_BuildValue(""); /* None */
+	goto success;
     }
     else if (strcmp(name, "__class__") == 0) {
 	SV *sv;
@@ -1217,6 +1219,7 @@ pysvrv_getattro(PySVRV *self, PyObject *nameobj)
 	    ENTER_PYTHON;
 	    val = Py_BuildValue("");
 	}
+	goto success;
     }
     else if (strcmp(name, "__type__") == 0) {
 	const char *tmp;
@@ -1224,6 +1227,7 @@ pysvrv_getattro(PySVRV *self, PyObject *nameobj)
 	tmp = sv_reftype(SvRV(self->rv), 0);
 	ENTER_PYTHON;
 	val = PyUnicode_FromString(tmp);
+	goto success;
     }
     else if (strcmp(name, "__value__") == 0) {
 	SV *sv = SvRV(self->rv);
@@ -1232,20 +1236,22 @@ pysvrv_getattro(PySVRV *self, PyObject *nameobj)
 	case SVt_PVHV:
 	case SVt_PVCV:
 	    PyErr_SetString(PyExc_AttributeError, name);
-	    val = NULL;
+	    goto error;
 	    break;
 	default:
 	    PERL_LOCK;
 	    val = sv2pyo(sv); 
 	    PERL_UNLOCK;
 	}
+	goto success;
     }
     else if (strcmp(name, "__readonly__") == 0) {
 	val = PyLong_FromLong(SvREADONLY(SvRV(self->rv)) != 0);
+	goto success;
     }
     else if (self->methodname) {
 	PyErr_SetString(PyExc_AttributeError, name);
-	val = NULL;
+	goto error;
     }
     else if (SvOBJECT(SvRV(self->rv))) {
 	PySVRV *method_obj;
@@ -1266,15 +1272,26 @@ pysvrv_getattro(PySVRV *self, PyObject *nameobj)
 	}
 	PERL_UNLOCK;
 	val = (PyObject *)method_obj;
+	goto success;
     }
     else if (SvTYPE(SvRV(self->rv)) == SVt_PVAV || SvTYPE(SvRV(self->rv)) == SVt_PVHV) {
 	val = PyObject_GenericGetAttr((PyObject *)self, nameobj);
+	goto success;
+    }
+    else if (!(val = PyObject_GenericGetAttr((PyObject *)self, nameobj))) {
+	if (!PyErr_ExceptionMatches(PyExc_AttributeError))
+	    goto error;
+	else
+	    goto success;
     }
     else {
 	PyErr_SetString(PyExc_AttributeError, name);
-	val = NULL;
+	goto error;
     }
 
+error:
+    val = NULL;
+success:
     ASSERT_LOCK_PYTHON;
     return val;
 }
