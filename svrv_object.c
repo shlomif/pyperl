@@ -214,6 +214,46 @@ FAIL:
     return NULL;
 }
 
+static int
+pysvrv_contains(PySVRV *self, PyObject *value)
+{
+    char *key;
+    Py_ssize_t keylen;
+    int exists;
+    PyObject *found;
+    SV** svp;
+    dCTXP;
+
+    if (!PyUnicode_Check(value)) {
+	PyErr_SetString(PyExc_TypeError, "perl hash key must be string");
+	return -1;
+    }
+
+    ASSERT_LOCK_PYTHON;
+    CHECK_OWNED_PY;
+    key = PyUnicode_AsUTF8AndSize(value, &keylen);
+
+    ENTER_PERL;
+    SET_CUR_PERL;
+    assert(SvTYPE(SvRV(self->rv)) == SVt_PVHV);
+    svp = hv_fetch((HV*)SvRV(self->rv), key, keylen, 0);
+
+    ENTER_PYTHON;
+    if (svp) {
+	PERL_LOCK;
+	found = sv2pyo(*svp);
+	PERL_UNLOCK;
+    } else {
+        if (PyErr_Occurred()) {
+	    Py_DECREF(key);
+            return -1;
+	}
+        return 0;
+    }
+
+    return PyObject_RichCompareBool(value, found, Py_EQ);
+}
+
 static PyObject*
 pysvrv_keys(PySVRV *self, PyObject *args)
 {
