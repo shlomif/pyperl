@@ -6,6 +6,7 @@
 #include <EXTERN.h>
 #include <perl.h>
 #include <Python.h>
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -219,7 +220,7 @@ pysvrv_contains(PySVRV *self, PyObject *value)
 {
     char *key;
     Py_ssize_t keylen;
-    int exists;
+    bool exists;
     PyObject *found;
     SV** svp;
     dCTXP;
@@ -236,22 +237,11 @@ pysvrv_contains(PySVRV *self, PyObject *value)
     ENTER_PERL;
     SET_CUR_PERL;
     assert(SvTYPE(SvRV(self->rv)) == SVt_PVHV);
-    svp = hv_fetch((HV*)SvRV(self->rv), key, keylen, 0);
+    exists = hv_exists((HV*)SvRV(self->rv), key, keylen);
 
     ENTER_PYTHON;
-    if (svp) {
-	PERL_LOCK;
-	found = sv2pyo(*svp);
-	PERL_UNLOCK;
-    } else {
-        if (PyErr_Occurred()) {
-	    Py_DECREF(key);
-            return -1;
-	}
-        return 0;
-    }
 
-    return PyObject_RichCompareBool(value, found, Py_EQ);
+    return exists;
 }
 
 static PyObject*
