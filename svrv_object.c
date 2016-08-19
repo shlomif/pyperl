@@ -116,7 +116,7 @@ static PyObject*
 pysvrv_has_key(PySVRV *self, PyObject *args)
 {
     char *key;
-    int keylen;
+    Py_ssize_t keylen;
     int exists;
     dCTXP;
 
@@ -131,9 +131,8 @@ pysvrv_has_key(PySVRV *self, PyObject *args)
     exists = hv_exists((HV*)SvRV(self->rv), key, keylen);
 
     ENTER_PYTHON;
-    return PyLong_FromLong(exists);
+    return PyBool_FromLong(exists);
 }
-
 
 static PyObject*
 do_hash_kv(HV* hv, bool do_keys, bool do_values)
@@ -1113,12 +1112,12 @@ pysvrv_av_alloc(PySVRV *self, PyObject *args)
 static PyMethodDef pysvrv_methods[] = {
     /* mapp_methods */
     {"has_key",	(PyCFunction)pysvrv_has_key, METH_VARARGS},
-    {"keys",	(PyCFunction)pysvrv_keys,    0},
-    {"items",	(PyCFunction)pysvrv_items,   0},
-    {"values",	(PyCFunction)pysvrv_values,  0},
+    {"keys",	(PyCFunction)pysvrv_keys,    METH_NOARGS},
+    {"items",	(PyCFunction)pysvrv_items,   METH_NOARGS},
+    {"values",	(PyCFunction)pysvrv_values,  METH_NOARGS},
     {"update",	(PyCFunction)pysvrv_update,  METH_VARARGS},
-    {"clear",	(PyCFunction)pysvrv_clear,   0},
-    {"copy",	(PyCFunction)pysvrv_copy,    0},
+    {"clear",	(PyCFunction)pysvrv_clear,   METH_NOARGS},
+    {"copy",	(PyCFunction)pysvrv_copy,    METH_NOARGS},
     {"get",     (PyCFunction)pysvrv_get,     METH_VARARGS},
     /* list_methods */
     {"append",	(PyCFunction)pysvrv_append,  METH_VARARGS},
@@ -1128,11 +1127,10 @@ static PyMethodDef pysvrv_methods[] = {
     {"remove",	(PyCFunction)pysvrv_remove,  METH_VARARGS},
     {"index",	(PyCFunction)pysvrv_index,   METH_VARARGS},
     {"count",	(PyCFunction)pysvrv_count,   METH_VARARGS},
-    {"reverse",	(PyCFunction)pysvrv_reverse, 0},
+    {"reverse",	(PyCFunction)pysvrv_reverse, METH_NOARGS},
     {"sort",	(PyCFunction)pysvrv_sort,    METH_VARARGS},
-    {"av_alloc",(PyCFunction)pysvrv_av_alloc,0},
-
-  {NULL, NULL} /* sentinel */
+    {"av_alloc",(PyCFunction)pysvrv_av_alloc,METH_NOARGS},
+    {NULL, NULL} /* sentinel */
 };
 
 static PyMethodDef list_methods[] = {
@@ -1143,10 +1141,10 @@ static PyMethodDef list_methods[] = {
     {"remove",	(PyCFunction)pysvrv_remove,  METH_VARARGS},
     {"index",	(PyCFunction)pysvrv_index,   METH_VARARGS},
     {"count",	(PyCFunction)pysvrv_count,   METH_VARARGS},
-    {"reverse",	(PyCFunction)pysvrv_reverse, 0},
+    {"reverse",	(PyCFunction)pysvrv_reverse, METH_NOARGS},
     {"sort",	(PyCFunction)pysvrv_sort,    METH_VARARGS},
-    {"av_alloc",(PyCFunction)pysvrv_av_alloc,0},
-  {NULL, NULL} /* sentinel */
+    {"av_alloc",(PyCFunction)pysvrv_av_alloc,METH_NOARGS},
+    {NULL, NULL} /* sentinel */
 };
 
 
@@ -2020,14 +2018,11 @@ static PyMappingMethods pysvrv_as_mapping = {
 };
 
 static PySequenceMethods pysvrv_as_sequence = {
-    (lenfunc)pysvrv_length, /*sq_length*/
-    (binaryfunc)pysvrv_concat, /*sq_concat*/
-    (ssizeargfunc)pysvrv_repeat, /*sq_repeat*/
-    (ssizeargfunc)pysvrv_item, /*sq_item*/
-    (ssizessizeargfunc)pysvrv_slice, /*sq_slice*/
-    0, /*sq_ass_item*/
-    (ssizessizeobjargproc)pysvrv_ass_slice, /*sq_ass_slice*/
-    0, /*sq_contains*/
+    .sq_length = (lenfunc)pysvrv_length,
+    .sq_concat = (binaryfunc)pysvrv_concat,
+    .sq_repeat = (ssizeargfunc)pysvrv_repeat,
+    .sq_item = (ssizeargfunc)pysvrv_item,
+    .sq_contains = (objobjproc)pysvrv_contains,
 };
 
 
@@ -2035,7 +2030,7 @@ static PySequenceMethods pysvrv_as_sequence = {
 PyTypeObject SVRVtype = {
     PyVarObject_HEAD_INIT(&PyType_Type, 0)
     .tp_name = "perl ref",
-    .tp_itemsize = sizeof(PyTypeObject),
+    .tp_basicsize = sizeof(PyTypeObject),
     .tp_dealloc = (destructor)pysvrv_dealloc,
     .tp_repr = (reprfunc)pysvrv_repr,
     .tp_as_number = &pysvrv_as_number,
