@@ -13,9 +13,9 @@ import subprocess
 MULTI_PERL = os.path.isfile("MULTI_PERL")
 BOOT_FROM_PERL = os.path.isfile("BOOT_FROM_PERL")
 
-p = os.popen(perl + ' ./opts.pl')
-perl_ccopts = p.readline()
-perl_ldopts = p.readline()
+p = os.popen("perl -MExtUtils::Embed -e 'ccopts();print \"\n\"; ldopts()'")
+perl_ccopts = p.readline().strip()
+perl_ldopts = p.readline().strip()
 p.close()
 
 ext_name     = "perl"
