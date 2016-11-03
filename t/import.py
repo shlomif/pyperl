@@ -1,4 +1,4 @@
-print "1..5"
+print("1..5")
 import perl
 import sys;
 
@@ -27,5 +27,5 @@ print "ok 4\n";
 """ % (sys.version))
 
 if sys.modules['string']:
-    print "ok 5"
+    print("ok 5")
 

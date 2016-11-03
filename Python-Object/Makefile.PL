@@ -9,9 +9,10 @@ my @libs;
 
 push(@define, "MULTI_PERL") if -f "../MULTI_PERL";
 
+push(@libs, $pylib);
+
 if (-f "../BOOT_FROM_PERL") {
     push(@define, "BOOT_FROM_PERL");
-    push(@libs, $pylib);
     push(@extra, OBJECT => "Object.o $pysitelib/perl.so");
 }
 
@@ -40,5 +41,5 @@ WriteMakefile(
     VERSION_FROM => 'Object.pm',
     INC          => $pyinc,
     @extra,
-    dist         => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
+    dist         => { COMPRESS => 'xz -9f', SUFFIX => 'xz', },
 );

@@ -6,17 +6,19 @@
  * make the symbols available for extension modules that perl might load.
  */
 
-extern void initperl()
+extern PyMODINIT_FUNC PyInit_perl()
 {
     void* handle;
-    int i, npath, len;
+    int i, npath;
+    size_t len;
     char buf[1024];
+    struct stat sb;
 
     PyObject *path = PySys_GetObject("path");
     if (path == NULL || !PyList_Check(path)) {
 	PyErr_SetString(PyExc_ImportError,
 			"sys.path must be a list of directory names");
-	return;
+	return NULL;
     }
 
     npath = PyList_Size(path);
@@ -32,19 +34,23 @@ extern void initperl()
 	    continue; /* Not absolute */
 	if (strlen(buf) != len)
 	    continue; /* v contains '\0' */
-	strcpy(buf+len, "/perl2.so");
 
-	handle = dlopen(buf, RTLD_NOW | RTLD_GLOBAL);
-	if (handle) {
-	    void (*f)() = dlsym(handle, "initperl2");
-	    if (f) {
-		f();
-	    }
-	    else {
-		PyErr_SetString(PyExc_ImportError, "initperl2 entry point not found");
-	    }
-	    return;
-	}
+	strcpy(buf+len, "/perl2" EXT_SUFFIX);
+
+	if (!stat(buf, &sb) && (handle = dlopen(buf, RTLD_NOW | RTLD_GLOBAL)))
+		break;
     }
-    PyErr_SetString(PyExc_ImportError, dlerror());
+
+    if (handle) {
+	PyMODINIT_FUNC (*f)() = dlsym(handle, "PyInit_perl2");
+
+	if (f)
+	    return f();
+	else
+	    PyErr_SetString(PyExc_ImportError, "PyInit_perl2 entry point not found");
+    }
+    else
+	PyErr_SetString(PyExc_ImportError, dlerror());
+
+    return NULL;
 }

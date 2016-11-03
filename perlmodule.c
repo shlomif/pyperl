@@ -12,6 +12,7 @@
 #include "svrv_object.h"
 #include "lang_lock.h"
 #include "lang_map.h"
+#include "try_perlapi.h"
 
 static PyObject *PerlError;
 extern void xs_init (pTHXo);
@@ -750,11 +751,11 @@ static struct PyModuleDef ModuleDef = {
         NULL
 };
 
-void
+PyMODINIT_FUNC
 #ifdef DL_HACK
-initperl2()
+PyInit_perl2()
 #else
-initperl()
+PyInit_perl()
 #endif
 {
     PyObject *m, *d;
@@ -784,6 +785,9 @@ initperl()
      */
 
     m = PyModule_Create(&ModuleDef);
+    if (m == NULL)
+	    return NULL;
+
     d = PyModule_GetDict(m);
     PerlError = PyErr_NewException("perl.PerlError", NULL, NULL);
     PyDict_SetItemString(d, "PerlError", PerlError);
@@ -792,4 +796,6 @@ initperl()
 #else
     PyDict_SetItemString(d, "MULTI_PERL", PyLong_FromLong(0));
 #endif
+
+    return m;
 }

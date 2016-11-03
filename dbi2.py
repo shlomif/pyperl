@@ -55,7 +55,7 @@ def connect(*arg):
 The first parameter is the DBI source string.  Then optional username
 and password follows.
 """
-    return apply(connection, arg)
+    return connection(*arg)
 
 class connection:
     def __init__(self, dsn, user=None, password=None):
@@ -71,7 +71,7 @@ class connection:
 
         self.dbh = perl.callm("connect", "DBI", dsn, user, password, conf)
         if self.dbh is None:
-            raise OperationalError, perl.eval("$DBI::errstr")
+            raise OperationalError(perl.eval("$DBI::errstr"))
 
         self.dbh["RaiseError"] = 1
         
@@ -109,19 +109,18 @@ class cursor:
 
     def execute(self, operation, *param):
         self.sth = self.dbh.prepare(operation)
-        apply(self.sth.execute, param)
+        self.sth.execute(*param)
         self._get_types()
 
     def executemany(self, operation, parameters):
         self.sth = self.dbh.prepare(operation)
         for p in parameters:
-            apply(self.sth.execute, p)
+            self.sth.execute(*p)
         self._get_types()
         return rowcount
 
     def _get_types(self):
-        self.types = map(lambda s: TYPES.get(s, (s, str)),
-                         tuple(self.sth["TYPE"]))
+        self.types = [TYPES.get(s, (s, str)) for s in tuple(self.sth["TYPE"])]
 
     def __getattr__(self, attr):
         if attr == "rowcount":
@@ -129,17 +128,17 @@ class cursor:
         elif attr == "description":
             return self._description()
         else:
-            raise AttributeError, attr
+            raise AttributeError(attr)
         
     def _description(self):
         name = tuple(self.sth["NAME"])
         dsize = (0,) * len(name) # DBI does have this info
         isize = dsize
-        types = map(lambda s: s[0], self.types)
+        types = [s[0] for s in self.types]
         prec = tuple(self.sth["PRECISION"])
         scale = tuple(self.sth["SCALE"])
         null = tuple(self.sth["NULLABLE"])
-        return zip(name, dsize, isize, types, prec, scale, null)
+        return list(zip(name, dsize, isize, types, prec, scale, null))
 
     def fetchone(self):
         row = list(self.sth.fetchrow_tuple())
@@ -197,13 +196,13 @@ def Timestamp(year, month, day, hour, min, sec):
 import time
 
 def DateFromTicks(ticks):
-    return apply(Date,time.localtime(ticks)[:3])
+    return Date(*time.localtime(ticks)[:3])
 
 def TimeFromTicks(ticks):
-    return apply(Time,time.localtime(ticks)[3:6])
+    return Time(*time.localtime(ticks)[3:6])
 
 def TimestampFromTicks(ticks):
-    return apply(Timestamp,time.localtime(ticks)[:6])
+    return Timestamp(*time.localtime(ticks)[:6])
 
 Binary = str
 
@@ -227,7 +226,7 @@ TYPES = {
      -2: ("BINARY", str),
      -3: ("VARBINARY", str),
      -4: ("LONGVARBINARY", str),
-     -5: ("BIGINT", long),
+     -5: ("BIGINT", int),
      -6: ("TINYINT", int),
      -7: ("BIT", int),
      -8: ("WCHAR", str),
@@ -288,10 +287,10 @@ ROWID    = TYPE()
 # Exceptions
 import exceptions
 
-class Error(exceptions.StandardError):
+class Error(exceptions.Exception):
     pass
 
-class Warning(exceptions.StandardError):
+class Warning(exceptions.Exception):
     pass
 
 class InterfaceError(Error):
@@ -318,7 +317,7 @@ class DataError(DatabaseError):
 class NotSupportedError(DatabaseError):
     pass
 
-if not __builtins__.has_key("zip"):
+if "zip" not in __builtins__:
     def zip(*args):
         # for 1.5.2 which does not provide zip as a builtin
         i = 0

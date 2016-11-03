@@ -22,11 +22,11 @@ def perl_reduce(o):
             (storable_nfreeze(o),)
            )
 
-import copy_reg
-copy_reg.pickle(type(perl.get_ref("$")), perl_reduce, perl_restore)
+import copyreg
+copyreg.pickle(type(perl.get_ref("$")), perl_reduce, perl_restore)
 del(copy_reg)
 
-from cPickle import dumps, loads
+from pickle import dumps, loads
 
 # Make the dumps and loads functions available for perl
 f = perl.get_ref("$Python::Object::pickle_dumps", 1)

@@ -70,7 +70,7 @@ class PerlClass:
         if name[:2] == '__':
             if name[-2:] != '__' and name != '__':
                 return PerlClass(self.name, ctor=name[2:])
-            raise AttributeError, name
+            raise AttributeError(name)
         if self.name:
             name = self.name + "::" + name
         return PerlClass(name)
@@ -79,7 +79,7 @@ class PerlClass:
         import perl
         name = self.name
         perl_require(self.module)
-        return apply(perl.callm, (self.ctor, name) + args)
+        return perl.callm(*(self.ctor, name) + args)
 
 class PerlModule:
     def __init__(self, name, __wantarray__ = 0):
@@ -88,7 +88,7 @@ class PerlModule:
 
     def __getattr__(self, name):
         if name[:2] == '__':
-                raise AttributeError, name
+                raise AttributeError(name)
         perl_require(self.name)
         wantarray = self.wantarray
         if len(name) > 6 and name[-6:] == '_tuple':
@@ -118,7 +118,7 @@ Perl = PerlClass()
 INC = {}
 
 try:
-    from thread import get_ident
+    from _thread import get_ident
 except ImportError:
     def get_ident():
         return 1
@@ -134,7 +134,7 @@ def perl_require(mod):
         pass
     
     import perl
-    if not INC.has_key(id):
+    if id not in INC:
         INC[id] = {}
     INC[id][mod] = perl.require(mod)
     return INC[id][mod]

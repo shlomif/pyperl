@@ -1,8 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from setuptools import setup, Extension
 from distutils.command.install import install
 from distutils.command.build import build
+import sysconfig
 
 DEBUG = 0
 perl = 'perl'
@@ -90,8 +91,10 @@ else:
     p.close()
     if dlsrc == "dlsrc='dl_dlopen.xs';\n":
         ext_name = "perl2"
-        cc_extra.append("-DDL_HACK")
+        cc_extra.append('-DDL_HACK')
+        cc_extra.append('-DEXT_SUFFIX="' + sysconfig.get_config_var("EXT_SUFFIX") + '"')
         extra_ext.append(Extension(name = "perl",
+            extra_compile_args = cc_extra,
             sources = ["dlhack.c"],
             libraries= ["dl"],
             ))
@@ -120,13 +123,13 @@ if sys.platform == 'win32':
     sym_extra.append('vtbl_free_pyo')
 
 if DEBUG:
-    print("Macros:", macros)
-    print("Include: ", include_dirs)
-    print("Extra CC: ", cc_extra)
-    print("Obj: ", o_extra)
-    print("Libs:", libs)
-    print("Lib dirs:",  lib_dirs)
-    print("Extra LD: ", ld_extra)
+    print(("Macros:", macros))
+    print(("Include: ", include_dirs))
+    print(("Extra CC: ", cc_extra))
+    print(("Obj: ", o_extra))
+    print(("Libs:", libs))
+    print(("Lib dirs:",  lib_dirs))
+    print(("Extra LD: ", ld_extra))
 
 ext_modules = []
 ext_modules.append(Extension(name = ext_name,
