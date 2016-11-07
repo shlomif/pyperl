@@ -1,5 +1,5 @@
 recursive-include . *.py
-recrusive-include . *.pm
+recursive-include . *.pm
 include *.h
 include *.c
 include Changes
@@ -7,6 +7,4 @@ include README
 include TODO
 include opts.pl
 include try_perlapi.pl
-exclude tryperlapi.h
-exclude tryperlapi.c
 recursive-include Python-Object *
