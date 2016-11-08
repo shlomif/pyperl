@@ -40,7 +40,7 @@ class TestPyPerlHashOp(unittest.TestCase):
         try:
             print((self.h.get(42)))
         except TypeError as v:
-            self.assertEqual(str(v), "must be string or read-only buffer, not int")
+            self.assertEqual(str(v), "'int' does not support the buffer interface")
 
     def test_hash_key_index(self):
         self.h["foo"] = 42
