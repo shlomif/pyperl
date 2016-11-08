@@ -4,6 +4,7 @@ from setuptools import setup, Extension
 from distutils.command.install import install
 from distutils.command.build import build
 import sysconfig
+import os
 
 DEBUG = 0
 perl = 'perl'
@@ -108,6 +109,15 @@ if not os.path.isfile("try_perlapi.c") or \
         os.path.getmtime("try_perlapi.c") < os.path.getmtime("try_perlapi.pl"):
             os.system(perl + " try_perlapi.pl")
 
+if sys.argv[1] == "test" or sys.argv[1] == "build":
+    cwd=os.getcwd()
+    ldpath = '%s/Python-Object/blib/arch/auto/Python/Object' % cwd
+    perllib = '%s/Python-Object/blib/lib' % cwd
+    perlarchlib = '%s/Python-Object/blib/arch' % cwd
+    os.environ["PERL5LIB"] = "%s:%s" % (perllib,perlarchlib)
+    os.environ["LD_LIBRARY_PATH"] = ldpath
+
+
 if sys.platform == 'win32':
     libs.append('perl56')
     for x in ['15','16','20']:
@@ -151,15 +161,6 @@ class build_perl(build):
         build.spawn(self, ['perl','Makefile.PL', 'INSTALLDIRS=vendor'], 'Python-Object')
         build.spawn(self, ['make'])
         os.chdir('..')
-        build.run(self)
-
-class testold(build):
-    def run(self):
-        cwd=os.getcwd()
-        ldpath = '%s/Python-Object/blib/arch/auto/Python/Object' % cwd
-        perllib = '%s/Python-Object/blib/lib' % cwd
-        pypath = '%s/%s' % (cwd, self.build_lib)
-        os.system('LD_LIBRARY_PATH="%s" PERL5LIB="%s" PYTHONPATH="%s" python test.py' % (ldpath, perllib, pypath))
         build.run(self)
 
 class my_install(install):
