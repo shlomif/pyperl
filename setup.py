@@ -24,6 +24,7 @@ ext_name     = "perl"
 include_dirs = []
 macros       = []
 cc_extra     = []
+cc_extra.append(perl_ccopts)
 
 for x in perl_ccopts.split():
     if x[:2] == '-I':
@@ -47,6 +48,8 @@ o_extra   = []
 sym_extra   = []
 
 extra_ext = []
+
+ld_extra.extend(perl_ldopts.split())
 
 # Hack name to get it to compile as C++ file on Windows
 svrv_object_c_name = "svrv_object.c"
