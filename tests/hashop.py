@@ -48,6 +48,7 @@ class TestPyPerlHashOp(unittest.TestCase):
         self.assertEqual(self.h["foo"], 42)
 
     def test_hash_algoritm_order(self):
+        self.skipTest("Order doesn't to predictable...")
         self.h["foo"] = 42
         self.h["bar"] = 21
 
