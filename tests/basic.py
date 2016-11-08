@@ -24,7 +24,7 @@ sub foo2 {
     def test_pass_hashes_both_ways(self):
         # can we pass hashes both ways
         if perl.MULTI_PERL:
-            skip("not on MULTI_PERL...")
+            self.skipTest("not on MULTI_PERL...")
         else:
             perl.eval("sub foo_elem { shift->{foo} }")
             hash = perl.eval("{ foo => 42 }")
@@ -58,7 +58,7 @@ sub foo2 {
         # can we call anonymous perl functions
         # can we pass hashes both ways
         if perl.MULTI_PERL:
-            self.skip("not on MULTI_PERL...")
+            self.skipTest("not on MULTI_PERL...")
         else:
             func = perl.eval("sub { $_[0] + $_[1] }")
             self.assertEqual(int(func(3, 4)), 7)
