@@ -1,5 +1,6 @@
 #include <Python.h>
 #include <dlfcn.h>
+#include "pycompat.h"
 
 /* This is a fake perl module that will look for the real thing ('perl2.so')
  * in sys.path and then load this one with the RTLD_GLOBAL set in order to
@@ -52,5 +53,7 @@ extern PyMODINIT_FUNC PyInit_perl()
     else
 	PyErr_SetString(PyExc_ImportError, dlerror());
 
+#if PY_MAJOR_VERSION >= 3
     return NULL;
+#endif
 }

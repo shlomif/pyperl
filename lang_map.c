@@ -8,6 +8,7 @@
 #include <perl.h>
 #include <Python.h>
 
+#include "pycompat.h"
 #include "lang_map.h"
 #include "lang_lock.h"
 #include "thrd_ctx.h"

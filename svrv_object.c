@@ -11,7 +11,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
+#include "pycompat.h"
 #include "thrd_ctx.h"
 #include "svrv_object.h"
 #include "perlmodule.h"
