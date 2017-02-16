@@ -241,7 +241,7 @@ pysvrv_contains(PySVRV *self, PyObject *value)
     exists = hv_exists((HV*)SvRV(self->rv), key, keylen);
 
     ENTER_PYTHON;
-#if PY_MAJOR_VERSION >= 3
+#if PY_MAJOR_VERSION < 3
     if (svp) {
 	PERL_LOCK;
 	found = sv2pyo(*svp);
