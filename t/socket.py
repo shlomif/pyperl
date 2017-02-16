@@ -10,13 +10,13 @@ addr = perl.eval("""
                  Socket::pack_sockaddr_in(80, Socket::inet_aton('127.0.0.1'));
                  """);
 
-#print repr(addr);
+#print(repr(addr));
 
 if not addr: print("not ", end=' ')
 print("ok 1");
 
 addr = perl.call_tuple("Socket::unpack_sockaddr_in", addr)
-# print(repr(addr))
+#print(repr(addr))
 
 if addr[0] != 80 or len(addr[1]) != 4: print("not ", end=' ')
 print("ok 2")
