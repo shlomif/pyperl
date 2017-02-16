@@ -119,6 +119,7 @@ if sys.argv[1] == "test" or sys.argv[1] == "build":
     perlarchlib = '%s/Python-Object/blib/arch' % cwd
     os.environ["PERL5LIB"] = "%s:%s" % (perllib,perlarchlib)
     os.environ["LD_LIBRARY_PATH"] = ldpath
+    os.environ["PYTHON"] = sys.executable
 
 
 if sys.platform == 'win32':
