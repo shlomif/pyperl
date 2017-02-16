@@ -215,6 +215,7 @@ FAIL:
     return NULL;
 }
 
+
 static int
 pysvrv_contains(PySVRV *self, PyObject *value)
 {
@@ -240,8 +241,23 @@ pysvrv_contains(PySVRV *self, PyObject *value)
     exists = hv_exists((HV*)SvRV(self->rv), key, keylen);
 
     ENTER_PYTHON;
+#if PY_MAJOR_VERSION >= 3
+    if (svp) {
+	PERL_LOCK;
+	found = sv2pyo(*svp);
+	PERL_UNLOCK;
+    } else {
+	if (PyErr_Occurred()) {
+	    Py_DECREF(key);
+	    return -1;
+	}
+	return 0;
+    }
 
+    return PyObject_RichCompareBool(value, found, Py_EQ);
+#else
     return exists;
+#endif
 }
 
 static PyObject*
@@ -2037,6 +2053,9 @@ static PyNumberMethods pysvrv_as_number = {
 	0,	/*nb_add*/
 	0,	/*nb_subtract*/
 	0,	/*nb_multiply*/
+#if PY_MAJOR_VERSION < 3
+	0, 	/*nb_divide*/
+#endif
 	0,	/*nb_remainder*/
 	0,	/*nb_divmod*/
 	0,	/*nb_power*/
@@ -2065,11 +2084,22 @@ static PyMappingMethods pysvrv_as_mapping = {
 };
 
 static PySequenceMethods pysvrv_as_sequence = {
+#if PY_MAJOR_VERSION >= 3
     .sq_length = (lenfunc)pysvrv_length,
     .sq_concat = (binaryfunc)pysvrv_concat,
     .sq_repeat = (ssizeargfunc)pysvrv_repeat,
     .sq_item = (ssizeargfunc)pysvrv_item,
     .sq_contains = (objobjproc)pysvrv_contains,
+#else
+    (lenfunc)pysvrv_length, /*sq_length*/
+    (binaryfunc)pysvrv_concat, /*sq_concat*/
+    (ssizeargfunc)pysvrv_repeat, /*sq_repeat*/
+    (ssizeargfunc)pysvrv_item, /*sq_item*/
+    (ssizessizeargfunc)pysvrv_slice, /*sq_slice*/
+    0, /*sq_ass_item*/
+    (ssizessizeobjargproc)pysvrv_ass_slice, /*sq_ass_slice*/
+    0, /*sq_contains*/
+#endif
 };
 
 

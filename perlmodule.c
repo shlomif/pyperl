@@ -7,6 +7,7 @@
 #include <perl.h>
 #include <Python.h>
 
+#include "pycompat.h"
 #include "thrd_ctx.h"
 #include "perlmodule.h"
 #include "svrv_object.h"
@@ -739,6 +740,8 @@ static PyMethodDef PerlMethods[] = {
     { NULL, NULL } /* Sentinel */
 };
 
+
+#if PY_MAJOR_VERSION >= 3
 static struct PyModuleDef ModuleDef = {
         PyModuleDef_HEAD_INIT,
         "perl",
@@ -750,6 +753,7 @@ static struct PyModuleDef ModuleDef = {
         NULL,
         NULL
 };
+#endif
 
 PyMODINIT_FUNC
 #ifdef DL_HACK
@@ -784,9 +788,11 @@ PyInit_perl()
      * python itself was embedded before we imported perl.
      */
 
+#if PY_MAJOR_VERSION >= 3
     m = PyModule_Create(&ModuleDef);
-    if (m == NULL)
-	    return NULL;
+#else
+    m = Py_InitModule("perl", PerlMethods);
+#endif
 
     d = PyModule_GetDict(m);
     PerlError = PyErr_NewException("perl.PerlError", NULL, NULL);
@@ -797,5 +803,7 @@ PyInit_perl()
     PyDict_SetItemString(d, "MULTI_PERL", PyLong_FromLong(0));
 #endif
 
+#if PY_MAJOR_VERSION >= 3
     return m;
+#endif
 }

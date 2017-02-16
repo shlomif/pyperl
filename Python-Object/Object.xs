@@ -7,11 +7,11 @@
 
 #include <Python.h>
 #include "PerlPyErr.h"
+#include "../pycompat.h"
 #include "../lang_lock.h"
 #include "../lang_map.h"
 #include "../thrd_ctx.h"
 #include "../pyo.h"
-#include "../perlmodule.h"
 
 /* so we can use different typemaps for borrowed/owned obj refs */
 typedef PyObject NewPyObject;

@@ -24,7 +24,9 @@ typedef Py_ssize_t (*charbufferproc)(PyObject *, Py_ssize_t, char **);
 #endif
 
 #if PY_MAJOR_VERSION < 3
+#define PyUnicode_AsUTF8 PyString_AsString
 #define PyUnicode_GetLength PyUnicode_GetSize
+#define PyUnicode_AsUTF8AndSize PyString_AsStringAndSize
 #endif
 
 #endif
