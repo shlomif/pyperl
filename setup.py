@@ -112,7 +112,7 @@ if not os.path.isfile("try_perlapi.c") or \
         os.path.getmtime("try_perlapi.c") < os.path.getmtime("try_perlapi.pl"):
             os.system(perl + " try_perlapi.pl")
 
-if sys.argv[1] == "test" or sys.argv[1] == "build":
+if sys.argv[1] == "test" or sys.argv[1] == "build" or sys.argv[1] == "install":
     cwd=os.getcwd()
     ldpath = '%s/Python-Object/blib/arch/auto/Python/Object' % cwd
     perllib = '%s/Python-Object/blib/lib' % cwd
