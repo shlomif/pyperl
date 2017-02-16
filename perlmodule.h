@@ -21,6 +21,11 @@ typedef Py_ssize_t (*segcountproc)(PyObject *, Py_ssize_t *);
 typedef Py_ssize_t (*charbufferproc)(PyObject *, Py_ssize_t, char **);
 #endif
 
+#if PY_MAJOR_VERSION < 3
+#define PyUnicode_AsUTF8 PyString_AsString
+#define PyUnicode_GetLength PyString_Size
+#endif
+
 void propagate_errsv(void);
 PyObject *call_perl(char *method, SV* obj, I32 gimme,
 		    PyObject *args, PyObject *keywds);
