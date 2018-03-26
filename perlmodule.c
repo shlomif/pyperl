@@ -755,11 +755,24 @@ static struct PyModuleDef ModuleDef = {
 };
 #endif
 
+
+#if PY_MAJOR_VERSION < 3
+void
+#ifdef DL_HACK
+initperl2()
+#else
+initperl()
+#endif
+
+#else
+
 PyMODINIT_FUNC
 #ifdef DL_HACK
 PyInit_perl2()
 #else
 PyInit_perl()
+#endif
+
 #endif
 {
     PyObject *m, *d;

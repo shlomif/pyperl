@@ -7,7 +7,12 @@
  * make the symbols available for extension modules that perl might load.
  */
 
-extern PyMODINIT_FUNC PyInit_perl()
+extern PyMODINIT_FUNC
+#if PY_MAJOR_VERSION < 3
+initperl()
+#else
+PyInit_perl()
+#endif
 {
     void* handle;
     int i, npath;
@@ -19,7 +24,11 @@ extern PyMODINIT_FUNC PyInit_perl()
     if (path == NULL || !PyList_Check(path)) {
 	PyErr_SetString(PyExc_ImportError,
 			"sys.path must be a list of directory names");
-	return NULL;
+	return
+#if PY_MAJOR_VERSION >= 3
+	NULL
+#endif
+	;
     }
 
     npath = PyList_Size(path);

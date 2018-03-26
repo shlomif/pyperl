@@ -26,7 +26,13 @@ typedef Py_ssize_t (*charbufferproc)(PyObject *, Py_ssize_t, char **);
 #if PY_MAJOR_VERSION < 3
 #define PyUnicode_AsUTF8 PyString_AsString
 #define PyUnicode_GetLength PyUnicode_GetSize
-#define PyUnicode_AsUTF8AndSize PyString_AsStringAndSize
+static inline char * PyUnicode_AsUTF8AndSize(PyObject *unicode, Py_ssize_t *size) {
+    char *str = NULL;
+    int ret = PyString_AsStringAndSize(unicode, &str, size);
+
+    return str;
+}
+
 #endif
 
 #endif
