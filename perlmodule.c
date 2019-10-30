@@ -787,7 +787,9 @@ PyInit_perl()
     perl_parse(main_perl, xs_init, 4, embedding, NULL);
     perl_run(main_perl);
 
+#ifndef __CYGWIN__
     fake_inittry();
+#endif
 #else
     thrd_ctx_init();
 #endif /* MULTI_PERL */

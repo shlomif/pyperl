@@ -2084,22 +2084,20 @@ static PyMappingMethods pysvrv_as_mapping = {
 };
 
 static PySequenceMethods pysvrv_as_sequence = {
-#if PY_MAJOR_VERSION >= 3
     .sq_length = (lenfunc)pysvrv_length,
     .sq_concat = (binaryfunc)pysvrv_concat,
     .sq_repeat = (ssizeargfunc)pysvrv_repeat,
     .sq_item = (ssizeargfunc)pysvrv_item,
-    .sq_contains = (objobjproc)pysvrv_contains,
+#if PY_MAJOR_VERSION >= 3
+    .was_sq_slice = 0,
+    .sq_ass_item = 0,
+    .was_sq_ass_slice = 0,
 #else
-    (lenfunc)pysvrv_length, /*sq_length*/
-    (binaryfunc)pysvrv_concat, /*sq_concat*/
-    (ssizeargfunc)pysvrv_repeat, /*sq_repeat*/
-    (ssizeargfunc)pysvrv_item, /*sq_item*/
     (ssizessizeargfunc)pysvrv_slice, /*sq_slice*/
-    0, /*sq_ass_item*/
+    .sq_ass_item = 0, /*sq_ass_item*/
     (ssizessizeobjargproc)pysvrv_ass_slice, /*sq_ass_slice*/
-    0, /*sq_contains*/
 #endif
+    .sq_contains = (objobjproc)pysvrv_contains,
 };
 
 
@@ -2108,14 +2106,34 @@ PyTypeObject SVRVtype = {
     PyVarObject_HEAD_INIT(&PyType_Type, 0)
     .tp_name = "perl ref",
     .tp_basicsize = sizeof(PyTypeObject),
+    .tp_itemsize = 0,
     .tp_dealloc = (destructor)pysvrv_dealloc,
+    .tp_print = 0,
+    .tp_getattr = 0,
+    .tp_setattr = 0,
+#if PY_MAJOR_VERSION >= 3
+    .tp_as_async = 0,
+#else
+    .tp_compare = 0,
+#endif
     .tp_repr = (reprfunc)pysvrv_repr,
     .tp_as_number = &pysvrv_as_number,
     .tp_as_sequence = &pysvrv_as_sequence,
     .tp_as_mapping = &pysvrv_as_mapping,
+    .tp_hash = 0,
     .tp_call = (ternaryfunc)pysvrv_call,
+    .tp_str = 0,
     .tp_getattro = (getattrofunc)pysvrv_getattro,
     .tp_setattro = (setattrofunc)pysvrv_setattro,
+    .tp_as_buffer = 0,
+    .tp_flags = 0,
+    .tp_doc = 0,
+    .tp_traverse = 0,
+    .tp_clear = 0,
+    .tp_richcompare = 0,
+    .tp_weaklistoffset = 0,
+    .tp_iter = 0,
+    .tp_iternext = 0,
     .tp_methods = pysvrv_methods,
 };
 
