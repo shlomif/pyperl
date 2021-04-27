@@ -178,7 +178,7 @@ class my_install(install):
             self.root = ''
 
         os.chdir('Python-Object')
-        install.spawn(self, ["make", "DESTDIR=%s" % self.root, "install"])
+        install.spawn(self, ["make",] + (["DESTDIR=%s" % self.root] if len(self.root) else []) + ["install",])
         os.chdir('..')
         if "-DMULTI_PERL" in cc_extra:
             cc_extra.pop(cc_extra.index("-DMULTI_PERL"))
