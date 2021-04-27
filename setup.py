@@ -118,7 +118,7 @@ if sys.argv[1] == "test" or sys.argv[1] == "build" or sys.argv[1] == "install":
     perllib = '%s/Python-Object/blib/lib' % cwd
     perlarchlib = '%s/Python-Object/blib/arch' % cwd
     os.environ["PERL5LIB"] = "%s:%s%s" % (perllib, perlarchlib, (":"+os.environ["PERL5LIB"] if "PERL5LIB" in os.environ else ''))
-    os.environ["LD_LIBRARY_PATH"] = ldpath
+    os.environ["LD_LIBRARY_PATH"] = "%s%s" % (ldpath, (":"+os.environ["LD_LIBRARY_PATH"] if "LD_LIBRARY_PATH" in os.environ else ''))
     os.environ["PYTHON"] = sys.executable
 
 
