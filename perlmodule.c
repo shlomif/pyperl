@@ -562,9 +562,14 @@ defined(self, args)
 }
 
 #define out_fh stdout
+#ifdef MYDEBUG
 #define TRACE(my_format, ...)                                                  \
     fprintf(out_fh, my_format, __VA_ARGS__);                                   \
     fflush(out_fh)
+#else
+#define TRACE(my_format, ...) {}
+#endif
+
 
 static PyObject *
 get_ref(self, args, keywds)
