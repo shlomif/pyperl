@@ -561,6 +561,10 @@ defined(self, args)
     return Py_BuildValue("i", (sv != 0));
 }
 
+#define out_fh stdout
+#define TRACE(my_format, ...)                                                  \
+    fprintf(out_fh, my_format, __VA_ARGS__);                                   \
+    fflush(out_fh)
 
 static PyObject *
 get_ref(self, args, keywds)
@@ -672,6 +676,7 @@ get_ref(self, args, keywds)
 
                   printf("sv aftre ASSERT_LOCK_PYTHON=%p ; pyo=%p\n", sv, pyo);
                   fflush(stdout);
+    TRACE("get_ref[%s] self=%p\n", "TRACE end", self);
     return pyo;
 }
 
@@ -682,12 +687,15 @@ array(self, args, keywds)
      PyObject *args;
      PyObject *keywds;
 {
+    TRACE("array[%s] self=%p\n", "rightstart", self);
     PyObject *o;
     int n, i;
     AV* av;
     SV* sv;
     PyObject *pyo;  /* return value */
     dCTXP;
+
+    TRACE("array[%s] self=%p\n", "start", self);
 
     ASSERT_LOCK_PYTHON;
 
@@ -766,7 +774,12 @@ static PyMethodDef PerlMethods[] = {
     { "require",     require,     METH_VARARGS},
     { "defined",     defined,     METH_VARARGS},
     { "get_ref",     get_ref,     METH_VARARGS|METH_KEYWORDS},
+#if PY_MAJOR_VERSION >= 3
+    { "__getitem__",       array,       METH_VARARGS},
+#else
     { "array",       array,       METH_VARARGS},
+#endif
+
     { NULL, NULL } /* Sentinel */
 };
 
