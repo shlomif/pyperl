@@ -572,8 +572,7 @@ get_ref(self, args, keywds)
      PyObject *args;
      PyObject *keywds;
 {
-                  printf("sv[zooooooooopre]=%p\n", NULL);
-                  fflush(stdout);
+                  TRACE("sv[zooooooooopre]=%p\n", NULL);
     char *name;
     int create = 0;
     char type;
@@ -589,16 +588,14 @@ get_ref(self, args, keywds)
                      &name, &create))
     return NULL;
 
-                  printf("sv[after PyArg_ParseTupleAndKeywords]=%p\n", NULL);
-                  fflush(stdout);
+                  TRACE("sv[after PyArg_ParseTupleAndKeywords]=%p\n", NULL);
     PERL_LOCK;
     SET_CUR_PERL;
 
     ENTER;
     RESTORE_UNSAFE_ENV;
 
-                  printf("sv[after RESTORE_UNSAFE_ENV]=%p\n", NULL);
-                  fflush(stdout);
+                  TRACE("sv[after RESTORE_UNSAFE_ENV]=%p\n", NULL);
     /* We assume that none of the stuff below can trigger perl code to
      * start running, so it is safe to hold both locks while doing this work.
      */
@@ -611,18 +608,15 @@ get_ref(self, args, keywds)
     name++;
     }
 
-                  printf("sv[after isIDFIRST]= name=%s type=%c\n", name, type);
-                  fflush(stdout);
+                  TRACE("sv[after isIDFIRST]= name=%s type=%c\n", name, type);
     if (*name) {
     switch (type) {
     case '$': sv =      get_sv(name, create); break;
     case '@': sv = (SV*)get_av(name, create); break;
     case '%': {
-                  printf("sv[pre]=%p\n", sv);
-                  fflush(stdout);
+                  TRACE("sv[pre]=%p\n", sv);
                   sv = (SV*)get_hv(name, create);
-                  printf("sv=%p\n", sv);
-                  fflush(stdout);
+                  TRACE("sv=%p\n", sv);
               }
                   break;
     case '&': sv = (SV*)get_cv(name, create); break;
@@ -645,11 +639,9 @@ get_ref(self, args, keywds)
     case '$': sv =      newSV(0); break;
     case '@': sv = (SV*)newAV();  break;
     case '%':{
-                  printf("sv[pre newHV]=%p\n", sv);
-                  fflush(stdout);
+                  TRACE("sv[pre newHV]=%p\n", sv);
                  sv = (SV*)newHV();
-                  printf("sv newHV=%p\n", sv);
-                  fflush(stdout);
+                  TRACE("sv newHV=%p\n", sv);
              }
     break;
     default:
@@ -661,21 +653,17 @@ get_ref(self, args, keywds)
     }
 
     sv = newRV_noinc(sv);
-                  printf("sv aftre newRV_noinc=%p\n", sv);
-                  fflush(stdout);
+                  TRACE("sv aftre newRV_noinc=%p\n", sv);
     pyo = PySVRV_New(sv);
-                  printf("sv aftre PySVRV_New=%p\n", sv);
-                  fflush(stdout);
+                  TRACE("sv aftre PySVRV_New=%p\n", sv);
     SvREFCNT_dec(sv);  /* since PySVRV_New incremented it */
-                  printf("sv aftre SvREFCNT_dec=%p\n", sv);
-                  fflush(stdout);
+                  TRACE("sv aftre SvREFCNT_dec=%p\n", sv);
     LEAVE;
 
     PERL_UNLOCK;
     ASSERT_LOCK_PYTHON;
 
-                  printf("sv aftre ASSERT_LOCK_PYTHON=%p ; pyo=%p\n", sv, pyo);
-                  fflush(stdout);
+                  TRACE("sv aftre ASSERT_LOCK_PYTHON=%p ; pyo=%p\n", sv, pyo);
     TRACE("get_ref[%s] self=%p\n", "TRACE end", self);
     return pyo;
 }
