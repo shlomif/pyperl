@@ -315,6 +315,10 @@ methods that make it compatible with python dictionaries.  Note that
 the C<key> argument of perl hashes must be strings.  A C<TypeError>
 exception is raised if non-string keys are used.
 
+B<Note:> to populate an empty Perl hash, it is advisable to use its
+C<.update()> method rather than a Python C<for k,v> loop. Otherwise,
+there may be garbage collection (GC) errors later.
+
 =over
 
 =item hash.has_key(key)
@@ -377,7 +381,7 @@ is called.
 
 =item str(p)
 
-Perl ref objects stringify as a string on the following form:
+Perl ref objects stringify as a string using the following form:
 
   <perl Foo=HASH(0x80db1e0) ref at 810fff0>
 
