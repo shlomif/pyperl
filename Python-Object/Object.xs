@@ -790,7 +790,7 @@ PyEval_CallObjectWithKeywords(o,...)
         }
 
         ENTER_PYTHON;
-        RETVAL = PyEval_CallObjectWithKeywords(o, alist, kwdict);
+        RETVAL = PyObject_Call(o, alist, kwdict);
         done:
             Py_XDECREF(t1);
             Py_XDECREF(t2);
