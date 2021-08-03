@@ -5,6 +5,7 @@
 #include "perl.h"
 #include "XSUB.h"
 
+#define PY_SSIZE_T_CLEAN
 #include <Python.h>
 #include "PerlPyErr.h"
 #include "../pycompat.h"
