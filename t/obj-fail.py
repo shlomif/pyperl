@@ -40,8 +40,7 @@ except AttributeError:
 try:
 	perl.eval("{}").xyzzy()
 except AttributeError as v:
-	from string import find
-	if find(str(v), "xyzzy") == -1:
+	if "xyzzy" not in str(v):
 		#print v
 		print("not", end=' ')
 	print("ok 4")

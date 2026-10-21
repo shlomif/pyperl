@@ -1,62 +1,54 @@
 pyperl - Perl for Python
 ------------------------
 
-This is a Python extension module that makes it possible to embed Perl
-interpreter(s) in any Python program.  It can be used to invoke
-arbitrary Perl code, load any Perl modules and make calls directly
-into Perl functions.  The Perl code invoked can call back into Python
-as it see fit.
+This is a Python extension module that embeds Perl interpreter(s) in
+any Python program.  It can be used to invoke arbitrary Perl code, load
+any Perl modules and make calls directly into Perl functions.  The Perl
+code invoked can call back into Python as it sees fit.
 
-You can select between 2 flavours for how to build the Perl for Python
-extension.  Which flavour to build is selected by the presence (or
-absence) of the MULTI_PERL file in this directory.  When MULTI_PERL is
-enabled, each python thread will get its own separate perl
-interpreter.  For -DMULTI_PERL builds an ithread eanabled perl is
-required.  It means that if you build your own perl you should pass
-the -Dusethreads option to 'Configure'.
+This is a maintained fork of pyperl 1.0.3 (originally written by Gisle
+Aas at ActiveState): https://github.com/mgheorghe/pyperl
 
-Perl 5.6.0 or better is required.  Python 1.5.2 or better is required.
+Requirements:
 
-Before you can build the Python extension module you should build the
-Python::Object module for Perl.  This allow Perl to access Python
-objects passed in from python calls.  This must be built first, since
-perlmodule.c reference it and want to link with it.
+  - Python 3.6 or newer with its development headers (tested: 3.6 to 3.15)
+  - Perl 5.10.1 or newer built with a shared libperl, with its development
+    files (tested: 5.10.1 to 5.44); e.g. libperl-dev on Debian/Ubuntu,
+    perl-devel and perl-ExtUtils-Embed on RHEL/Fedora
+  - a C compiler and make
+  - Linux, macOS, or Windows with Strawberry Perl (its gcc builds pyperl)
 
-There are also some patches to perl and python itself within the
-patches/ directory that you might want to apply before you build.
-The patches/README file tell you what you get.
+Free-threaded Python builds work: importing perl re-enables the GIL
+(Python prints a RuntimeWarning), and the import fails if the GIL was
+forced off with PYTHON_GIL=0 or -X gil=0.
 
-Build instructions:
+Install (with 'perl' on your PATH being the perl to embed):
 
-  - make sure your PATH is set up so that 'perl' and 'python'
-    reference the versions of the language interpreters that you
-    want to use.
+    pip install .
 
-  - If you are using Python-1.5.2, then you need to install
-    the Distutils package version 0.9 or better first.
+or straight from GitHub:
 
-  - Run these commands:
+    pip install git+https://github.com/mgheorghe/pyperl
 
-      (cd Python-Object; perl Makefile.PL; make install)
-      python setup.py install
+The Perl side (Python::Object) is installed next to the extension, so
+nothing is added to perl's own library.  On Windows a pyperl-dll.pth
+file is installed as well; it lets Python find perl5xx.dll.
 
-  - You should now be able to run the test.py test script.
+Two flavours can be built.  With the MULTI_PERL file present (the
+default in this repository) each Python thread gets its own perl
+interpreter; this needs a perl built with ithreads (-Dusethreads) and
+is skipped automatically for perls without them.  Delete MULTI_PERL to
+share one interpreter between all threads.
 
-      python test.py
+Run the tests from a source tree:
 
+    python setup.py build
+    export PYTHONPATH=$(ls -d build/lib.*)
+    python -m unittest discover -s tests -p '*.py'
+    python test.py
 
-The Perl for Python extension is known to work on Linux i386, Sparc
-Solaris and MS-Windows.
-
-The API for using perl from python is documented in the perlmodule.pod
-file.  The file can be converted to other formats with the pod2* tools
-that come with perl.
-
-The project home page is <http://www.zope.org/Wikis/zope-perl>.
-Source code releases are made available from
-<ftp://ftp.ActiveState.com/Zope-Perl/>.  Bug reports, suggestions and
-questions about this stuff can be sent to the <zope-perl@zope.org>
-mailing list.
+The API is documented in perlmodule.pod ('perldoc perlmodule.pod').
+Report bugs at https://github.com/mgheorghe/pyperl/issues
 
 --------------------------------------------------------------------
 (C) 2000-2001 ActiveState.

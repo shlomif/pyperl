@@ -285,12 +285,10 @@ ROWID    = TYPE()
 
 
 # Exceptions
-import exceptions
-
-class Error(exceptions.Exception):
+class Error(Exception):
     pass
 
-class Warning(exceptions.Exception):
+class Warning(Exception):
     pass
 
 class InterfaceError(Error):
@@ -316,19 +314,3 @@ class DataError(DatabaseError):
 
 class NotSupportedError(DatabaseError):
     pass
-
-if "zip" not in __builtins__:
-    def zip(*args):
-        # for 1.5.2 which does not provide zip as a builtin
-        i = 0
-        res = []
-        try:
-            while 1:
-                e = []
-                for a in args:
-                    e.append(a[i])
-                res.append(tuple(e))
-                i = i + 1
-        except IndexError:
-            pass
-        return tuple(res)

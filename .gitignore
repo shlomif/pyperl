@@ -1,0 +1,12 @@
+.venv/
+build/
+__pycache__/
+*.egg-info/
+svrv_object.cpp
+Python-Object/Makefile
+Python-Object/MYMETA.*
+Python-Object/Object.bs
+Python-Object/Object.c
+Python-Object/Object.o
+Python-Object/blib/
+Python-Object/pm_to_blib

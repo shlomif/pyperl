@@ -1,3 +1,42 @@
+2026-10-17   MirceaDan
+
+    Release 1.0.4 (https://github.com/mgheorghe/pyperl)
+
+    Builds and passes its tests with current compilers (gcc 15,
+    clang 17), Python 3.6 to 3.15 and Perl 5.10.1 to 5.44, with and
+    without MULTI_PERL, on Linux, macOS and Windows.
+
+    Fix Python 3 crashes and wrong results: apply() without
+    arguments, array index()/count()/remove(), slicing, "in",
+    string lengths, big integers, thread contexts, keys()/items()
+    on tied hashes, die() inside internal perl API calls.
+
+    Python str reaches perl as a character string (UTF8 flag), so
+    length() counts characters; perl strings with the UTF8 flag or
+    plain ASCII come back as str.
+
+    Perl strings that are not valid UTF-8 (pack() output, binary
+    data, such hash keys) are returned as bytes; bytes are passed
+    to perl unchanged.
+
+    pip installable (pyproject.toml); Python::Object is installed
+    next to the extension instead of into perl's library.
+
+    MULTI_PERL is ignored for perls without ithreads, and
+    setup.py install no longer deletes it.
+
+    Free-threaded Python: works with the GIL re-enabled on import;
+    refuses to import when the GIL is forced off.
+
+    Windows support with Strawberry Perl: built with its gcc,
+    Python::Object linked into the extension, per-thread perls
+    destroyed from a fiber-local-storage callback.
+
+    PERL_SYS_INIT3() is called before perl is started, and the perl
+    ref type is readied with PyType_Ready().
+
+    GitHub Actions CI replaces Travis CI.
+
 2021-08-03   Shlomi Fish <shlomif@cpan.org>
 
     Release 1.0.3

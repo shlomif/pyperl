@@ -57,7 +57,7 @@ print("ok 5")
 try:
    obj.callback(p_obj, "foo", 0)
 except ZeroDivisionError as v:
-   if str(v) != "integer division or modulo by zero": print("not", end=' ')
+   if str(v) != "division by zero": print("not", end=' ')
    print("ok 6")
 
 

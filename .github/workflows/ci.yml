@@ -1,0 +1,175 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 6 * * 1"  # weekly
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
+    continue-on-error: ${{ matrix.optional == true }}
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: oldest
+            os: ubuntu-22.04
+            python: "3.7"
+            perl: "5.10.1"
+            # old perls link -lnsl
+            apt: libnsl-dev
+          - name: perl 5.16 MULTI_PERL
+            os: ubuntu-24.04
+            python: "3.10"
+            perl: "5.16"
+            threads: true
+            apt: libnsl-dev
+          - name: distro
+            os: ubuntu-24.04
+            system: apt
+          - name: rhel8
+            os: ubuntu-24.04
+            container: rockylinux:8
+            system: dnf
+          - name: newest
+            os: ubuntu-26.04
+            python: "3.15"
+            perl: "5.44"
+            threads: true
+            no_multi_perl: true
+          - name: newest MULTI_PERL
+            os: ubuntu-26.04
+            python: "3.15"
+            perl: "5.44"
+            threads: true
+            multi_perl: true
+          - name: arm64 (optional)
+            os: ubuntu-26.04-arm
+            python: "3.15"
+            perl: "5.44"
+            threads: true
+            optional: true
+          - name: free-threaded (optional)
+            os: ubuntu-26.04
+            python: "3.15t"
+            perl: "5.44"
+            threads: true
+            optional: true
+          - name: windows (optional)
+            os: windows-latest
+            python: "3.14"
+            perl: "5.42"
+            perl_distribution: strawberry
+            optional: true
+          - name: macOS (optional)
+            os: macos-latest
+            python: "3.15"
+            perl: "5.44"
+            optional: true
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Python ${{ matrix.python }}
+        if: ${{ !matrix.system }}
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Set up Perl ${{ matrix.perl }}
+        if: ${{ !matrix.system }}
+        uses: shogo82148/actions-setup-perl@v1
+        with:
+          perl-version: ${{ matrix.perl }}
+          multi-thread: ${{ matrix.threads == true }}
+          distribution: ${{ matrix.perl_distribution || 'default' }}
+
+      - name: Put Strawberry Perl ahead of Git's perl in bash
+        if: ${{ runner.os == 'Windows' }}
+        shell: pwsh
+        run: |
+          function unix($p) { $p = (Resolve-Path $p).Path -replace '\\', '/'; '/' + $p.Substring(0, 1).ToLower() + $p.Substring(2) }
+          $bin = Split-Path (Get-Command perl).Source
+          $env_sh = "$env:RUNNER_TEMP\strawberry.sh"
+          "export PATH=`"$(unix $bin):$(unix "$bin\..\..\c\bin"):`$PATH`"" | Out-File -Encoding ascii $env_sh
+          "BASH_ENV=$(unix $env_sh)" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+
+      - name: Install extra packages
+        if: ${{ matrix.apt }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ${{ matrix.apt }}
+
+      - name: Install distro Python and Perl development packages
+        if: ${{ matrix.system == 'apt' }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends python3-dev python3-venv libperl-dev
+
+      - name: Install RHEL Python and Perl development packages
+        if: ${{ matrix.system == 'dnf' }}
+        run: dnf install -y python36 python36-devel perl perl-devel perl-ExtUtils-Embed gcc make redhat-rpm-config
+
+      - name: Create virtualenv
+        run: |
+          "$(command -v python || command -v python3)" -m venv .venv
+          bin=.venv/bin; [ -d .venv/Scripts ] && bin=.venv/Scripts
+          "$bin/python" -m pip install --upgrade pip setuptools
+          (cd "$bin" && { pwd -W 2>/dev/null || pwd; }) >> "$GITHUB_PATH"
+
+      - name: Versions
+        run: |
+          python -VV
+          perl -V:version -V:useithreads -V:useshrplib -V:installvendorarch
+          "$(perl -MConfig -e 'print $Config{cc}')" --version | head -1
+
+      - name: Disable MULTI_PERL
+        if: ${{ matrix.no_multi_perl }}
+        run: rm -f MULTI_PERL
+
+      - name: Build
+        run: python setup.py build
+
+      - name: Test
+        # Windows finds perl5xx.dll through the installed pyperl-dll.pth only
+        if: ${{ runner.os != 'Windows' }}
+        run: |
+          export PYTHONPATH="$(ls -d "$PWD"/build/lib.*)"
+          python -c "import perl; print('MULTI_PERL =', perl.MULTI_PERL)"
+          python -m unittest discover -s tests -p '*.py' -v
+          python test.py
+
+      - name: Refuse to run with the GIL forced off
+        if: ${{ endsWith(matrix.python, 't') }}
+        run: |
+          export PYTHONPATH="$(ls -d "$PWD"/build/lib.*)"
+          { PYTHON_GIL=0 python -c 'import perl' 2>&1 || true; } | grep "perl needs the GIL"
+
+      - name: pip install and test the installed copy
+        run: |
+          # the build must not depend on a "python" on PATH
+          mkdir -p "$RUNNER_TEMP/broken" && printf '#!/bin/sh\nexit 1\n' > "$RUNNER_TEMP/broken/python" && chmod +x "$RUNNER_TEMP/broken/python"
+          py=$(command -v python)
+          PATH="$RUNNER_TEMP/broken:$PATH" "$py" -m pip install .
+          cd "$RUNNER_TEMP"
+          python -c 'import perl; assert perl.eval("3+3") == 6; print("pyperl OK with perl", perl.eval("sprintf q{%vd}, $^V"))'
+          cd "$GITHUB_WORKSPACE"
+          python -m unittest discover -s tests -p '*.py'
+          python test.py

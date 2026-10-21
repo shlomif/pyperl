@@ -1,8 +1,9 @@
 import sys
+import time
 
 try:
-    import _thread
-except:
+    import threading
+except ImportError:
     print("1..0")
     sys.exit(0)
 
@@ -15,52 +16,43 @@ if not perl.MULTI_PERL:
 # thread (and perl interpreter) to the next one and that
 # it is still destructed properly.
 
-print("1..5")
+print("1..4")
+sys.stdout.flush()
 
-perl_obj = perl.eval("""
-
-sub Foo::hello {
-   return "Hello";
-}
-
-sub Foo::DESTROY
-{
-   my $self = shift;
-   print "ok 2\n";
-}
-
-bless {}, "Foo";
-
+perl.eval("""
+$| = 1;
+sub Foo::hello { return "Hello" }
+sub Foo::DESTROY { $main::destroyed++ }
 """)
-
-#print perl_obj.hello();
-#print perl_obj
+perl_obj = perl.eval('bless {}, "Foo"')
+wrong_thread = []
 
 def t1():
     global perl_obj
     try:
         perl_obj.hello()
-        print("not ")
-    except ValueError as v:
-        print("ok 1")
-        #print v
+    except ValueError:
+        wrong_thread.append(1)
 
-    perl.eval("""sub Foo::DESTROY { $|=1; print "ok 4\n"; }""");
-
+    perl.eval("""$| = 1; sub Foo::DESTROY { print "ok 4\\n" }""")
     perl_obj = perl.get_ref("@")
-    perl_obj.__class__ = "Foo";
-    #print perl_obj
-    print("ok 3")
-    sys.stdout.flush();
+    perl_obj.__class__ = "Foo"
 
-_thread.start_new_thread(t1, ())
+t = threading.Thread(target=t1)
+t.start()
+t.join()
 
-import time
-time.sleep(2)
-#print perl_obj
-perl_obj = None
+if not wrong_thread: print("not", end=' ')
+print("ok 1")
 
-print("ok 5")
+# free-threaded Python destroys an object released by another thread a bit later
+for i in range(100):
+    if perl.eval("$main::destroyed"):
+        break
+    time.sleep(0.05)
+if perl.eval("$main::destroyed") != 1: print("not", end=' ')
+print("ok 2")
 
-
-
+print("ok 3")
+sys.stdout.flush()
+perl_obj = None  # last reference: destroyed in t1's interpreter, which prints ok 4

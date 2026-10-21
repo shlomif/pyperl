@@ -6,7 +6,7 @@ class Foo:
     def foo(self, a, b=None):
         return "a=" + str(a) + ", b=" + str(b)
 
-perl.eval("""
+perl.eval(r"""
 
 use Python qw(apply KW);
 
@@ -19,7 +19,7 @@ sub foo {
         $o->foo();
     };
     #print $@;
-    print "not " unless "$@" =~ /^python.<type 'exceptions.TypeError'>: foo\(\) takes at least 2 arguments \(1 given\)/;
+    print "not " unless "$@" =~ /^python\.<class 'TypeError'>: (Foo\.)?foo\(\) missing 1 required positional argument: 'a'/;
     print "ok 1\n";
 
     my $res;

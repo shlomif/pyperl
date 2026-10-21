@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 
 from setuptools import setup, Extension
-from distutils.command.install import install
-from distutils.command.build import build
+from setuptools.command.install import install
+from setuptools.command.build_ext import build_ext
+try:
+    from setuptools.command.build import build
+except ImportError:  # setuptools < 62.4
+    from distutils.command.build import build
 import sysconfig
 import os
 
@@ -12,10 +16,25 @@ perl = 'perl'
 import os
 import sys
 import subprocess
-MULTI_PERL = os.path.isfile("MULTI_PERL")
-BOOT_FROM_PERL = os.path.isfile("BOOT_FROM_PERL")
+if subprocess.run([perl, "-e", "exit($] < 5.010001)"]).returncode != 0:
+    sys.exit("pyperl needs perl 5.10.1 or newer")
 
-p = os.popen("perl -MExtUtils::Embed -e 'ccopts();print \"\n\"; ldopts()'")
+MULTI_PERL = os.path.isfile("MULTI_PERL")
+if MULTI_PERL and subprocess.run([perl, "-MConfig", "-e", "print $Config{useithreads} ? 1 : 0"],
+                                 stdout=subprocess.PIPE, universal_newlines=True).stdout.strip() != "1":
+    print("MULTI_PERL ignored: perl is built without ithreads")
+    MULTI_PERL = False
+BOOT_FROM_PERL = os.path.isfile("BOOT_FROM_PERL")
+WIN32 = sys.platform == "win32"
+
+def perl_config(name):
+    return subprocess.run([perl, "-MConfig", "-e", "print $Config{%s}" % name],
+                          stdout=subprocess.PIPE, universal_newlines=True).stdout.strip()
+
+def opt_split(opts):
+    return [x.replace('"', '') for x in opts.split()]  # Strawberry quotes paths
+
+p = os.popen(perl + ' ./opts.pl')
 perl_ccopts = p.readline().strip()
 perl_ldopts = p.readline().strip()
 p.close()
@@ -24,9 +43,8 @@ ext_name     = "perl"
 include_dirs = []
 macros       = []
 cc_extra     = []
-cc_extra.append(perl_ccopts)
 
-for x in perl_ccopts.split():
+for x in opt_split(perl_ccopts):
     if x[:2] == '-I':
         include_dirs.append(x[2:])
 
@@ -49,22 +67,13 @@ sym_extra   = []
 
 extra_ext = []
 
-ld_extra.extend(perl_ldopts.split())
-
-# Hack name to get it to compile as C++ file on Windows
-svrv_object_c_name = "svrv_object.c"
-if sys.platform[:3] == "win":
-    import shutil
-    svrv_object_c_name = "svrv_object.cpp"
-    if os.path.exists(svrv_object_c_name):
-        os.chmod(svrv_object_c_name, 777)
-        os.unlink(svrv_object_c_name)
-    shutil.copy("svrv_object.c", svrv_object_c_name)
+if not WIN32:
+    ld_extra.extend(perl_ldopts.split())
 
 sources = ['perlmodule.c',
         'lang_lock.c',
         'lang_map.c',
-        svrv_object_c_name,
+        'svrv_object.c',
         'pyo.c',
         'try_perlapi.c',
         ]
@@ -72,7 +81,7 @@ sources = ['perlmodule.c',
 if BOOT_FROM_PERL:
     cc_extra.append("-DBOOT_FROM_PERL")
 else:
-    for x in perl_ldopts.split():
+    for x in opt_split(perl_ldopts):
         if x[:2] == '-L':
             lib_dirs.append(x[2:])
         elif x[:2] == '-l' and sys.platform != 'win32':
@@ -112,29 +121,26 @@ if not os.path.isfile("try_perlapi.c") or \
         os.path.getmtime("try_perlapi.c") < os.path.getmtime("try_perlapi.pl"):
             os.system(perl + " try_perlapi.pl")
 
-if sys.argv[1] == "test" or sys.argv[1] == "build" or sys.argv[1] == "install":
+if len(sys.argv) > 1 and sys.argv[1] in ("test", "build", "install"):
     cwd=os.getcwd()
     ldpath = '%s/Python-Object/blib/arch/auto/Python/Object' % cwd
     perllib = '%s/Python-Object/blib/lib' % cwd
     perlarchlib = '%s/Python-Object/blib/arch' % cwd
-    os.environ["PERL5LIB"] = "%s:%s%s" % (perllib, perlarchlib, (":"+os.environ["PERL5LIB"] if "PERL5LIB" in os.environ else ''))
+    os.environ["PERL5LIB"] = os.pathsep.join([perllib, perlarchlib] + ([os.environ["PERL5LIB"]] if "PERL5LIB" in os.environ else []))
     os.environ["LD_LIBRARY_PATH"] = "%s%s" % (ldpath, (":"+os.environ["LD_LIBRARY_PATH"] if "LD_LIBRARY_PATH" in os.environ else ''))
-    os.environ["PYTHON"] = sys.executable
+
+# Python-Object/Makefile.PL finds Python.h through this, also under pip
+os.environ["PYTHON"] = sys.executable
 
 
-if sys.platform == 'win32':
-    libs.append('perl56')
-    for x in ['15','16','20']:
-        if os.access(os.path.join(sys.prefix, 'libs', 'python'+x+'.lib'), os.F_OK):
-            libs.append('python'+x)
-    sym_extra.append('get_thread_ctx')
-    sym_extra.append('sv2pyo')
-    sym_extra.append('pyo2sv')
-    sym_extra.append('newPerlPyObject_noinc')
-    sym_extra.append('newPerlPyObject_inc')
-    sym_extra.append('PerlPyObject_pyo')
-    sym_extra.append('PerlPyObject_pyo_or_null')
-    sym_extra.append('vtbl_free_pyo')
+if WIN32:
+    # Python::Object is linked into the extension: a DLL cannot import from the .pyd that loads it
+    with open(os.path.join("Python-Object", "lib", "Python", "Object.pm")) as f:
+        xs_version = [l.split("'")[1] for l in f if l.startswith("$VERSION")][0]
+    sources.append(os.path.join("Python-Object", "Object.c"))
+    macros += [("XS_VERSION", '"%s"' % xs_version), ("VERSION", '"%s"' % xs_version)]
+    if sys.maxsize > 2**32:
+        macros.append(("MS_WIN64", None))
 
 if DEBUG:
     print(("Macros:", macros))
@@ -159,42 +165,61 @@ ext_modules.append(Extension(name = ext_name,
     ))
 ext_modules.extend(extra_ext)
 
+class build_ext_perl(build_ext):
+    def initialize_options(self):
+        build_ext.initialize_options(self)
+        if WIN32 and perl_config("cc") == "gcc":
+            self.compiler = "mingw32"  # perl's headers need the compiler perl was built with
+
 class build_perl(build):
     def run(self):
         os.chdir('Python-Object')
-        build.spawn(self, ['perl','Makefile.PL', 'INSTALLDIRS=vendor'], 'Python-Object')
-        build.spawn(self, ['make'])
+        makefile_pl = [perl, 'Makefile.PL']
+        # self-built perls have no vendor dirs
+        vendorarch = subprocess.run([perl, '-MConfig', '-e', 'print $Config{installvendorarch}'],
+                                    stdout=subprocess.PIPE, universal_newlines=True).stdout.strip()
+        if vendorarch:
+            makefile_pl.append('INSTALLDIRS=vendor')
+        build.spawn(self, makefile_pl)
+        make = perl_config("make") or "make"
+        build.spawn(self, [make, 'pm_to_blib', 'Object.c'] if WIN32 else [make])
         os.chdir('..')
         build.run(self)
+        # perlmodule.c puts this bundle on perl's @INC
+        bundle = os.path.join(self.build_lib, 'pyperl-perl')
+        for part in ('lib', 'arch'):
+            if os.path.isdir(os.path.join('Python-Object', 'blib', part)):
+                self.copy_tree(os.path.join('Python-Object', 'blib', part), bundle)
+        if WIN32:
+            # Python does not search PATH for perl5xx.dll
+            perl_bin = perl_config("bin")
+            with open(os.path.join(self.build_lib, 'pyperl-dll.pth'), 'w') as f:
+                f.write("import os; os.path.isdir(%r) and os.add_dll_directory(%r)\n" % (perl_bin, perl_bin))
 
-class my_install(install):
+# a perl that boots python needs Python::Object in its own library
+class boot_from_perl_install(install):
 
     def run(self):
-        cur_dir = os.getcwd()
-        multi_perl = os.path.join(cur_dir, 'MULTI_PERL')
-        if os.access(multi_perl, os.F_OK):
-            os.unlink(multi_perl)
+        self.run_command('build')
         if self.root is None:
             self.root = ''
 
         os.chdir('Python-Object')
         install.spawn(self, ["make",] + (["DESTDIR=%s" % self.root] if len(self.root) else []) + ["install",])
         os.chdir('..')
-        if "-DMULTI_PERL" in cc_extra:
-            cc_extra.pop(cc_extra.index("-DMULTI_PERL"))
-            sources.pop(sources.index('thrd_ctx.c'))
-        # Run actual install
         install.run(self)
 
 setup (name        = "pyperl",
-        version     = "1.0.3",
+        version     = "1.0.4",
         description = "Embed a Perl interpreter",
-        url         = "http://www.ActiveState.com",
+        url         = "https://github.com/mgheorghe/pyperl",
         author      = "ActiveState",
         author_email= "gisle@ActiveState.com",
+        python_requires = ">=3.6",
         py_modules  = ['dbi', 'dbi2', 'perlpickle', 'perlmod'],
         ext_modules = ext_modules,
-        cmdclass    = { 'install': my_install, 'build': build_perl},
+        cmdclass    = dict(build=build_perl, build_ext=build_ext_perl,
+                           **({'install': boot_from_perl_install} if BOOT_FROM_PERL else {})),
         test_suite  = "tests"
         )
 

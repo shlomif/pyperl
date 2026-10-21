@@ -10,7 +10,7 @@ opmask_add(pTHX_ char *bitmask, STRLEN len)
     int i,j;
     int myopcode = 0;
 
-    if (len != opset_len)
+    if (len != (STRLEN)opset_len)
 	croak("Invalid opset: wrong size");
 
     if (!PL_op_mask)		/* caller must ensure PL_op_mask exists	*/

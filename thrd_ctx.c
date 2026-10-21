@@ -10,23 +10,43 @@
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 
+#include "pycompat.h"
 #include "thrd_ctx.h"
 #include "perlmodule.h"
 
 static perl_key thrd_ctx_key;
+
+#ifdef WIN32
+void free_thread_ctx(thread_ctx* ctx);
+static int finalizing = 0;
+
+static void
+python_finalized(void)
+{
+    finalizing = 1;
+}
+
+/* runs at thread exit, outside the loader lock (unlike DllMain) */
+static VOID WINAPI
+fls_free_thread_ctx(PVOID ctx)
+{
+    if (ctx && !finalizing)
+	free_thread_ctx((thread_ctx*)ctx);
+}
+#endif
 
 thread_ctx*
 get_thread_ctx(void)
 {
     thread_ctx* ctx;
 #ifdef WIN32
-    ctx = (thread_ctx*)TlsGetValue(thrd_ctx_key);
+    ctx = (thread_ctx*)FlsGetValue(thrd_ctx_key);
 #else
     ctx = (thread_ctx*)pthread_getspecific(thrd_ctx_key);
 #endif
     if (!ctx) {
-	refcounted_perl* p = (refcounted_perl*)PyMem_Malloc(sizeof(refcounted_perl));
-	ctx = (thread_ctx*)PyMem_Malloc(sizeof(thread_ctx));
+	refcounted_perl* p = (refcounted_perl*)PyMem_RawMalloc(sizeof(refcounted_perl));
+	ctx = (thread_ctx*)PyMem_RawMalloc(sizeof(thread_ctx));
 	if (!p || !ctx) {
 	    Py_FatalError("Can't allocate memory for thread context");
 	}
@@ -40,7 +60,7 @@ get_thread_ctx(void)
 
 	ctx->perl = p;
 #ifdef WIN32
-	TlsSetValue(thrd_ctx_key, (void*)ctx);
+	FlsSetValue(thrd_ctx_key, (void*)ctx);
 #else
 	pthread_setspecific(thrd_ctx_key, (void*)ctx);
 #endif
@@ -55,21 +75,22 @@ free_thread_ctx(thread_ctx* ctx)
     if (ctx->perl->refcnt == 0) {
 	free_perl(ctx->perl->my_perl);
 	ctx->perl->my_perl = 0;
-	PyMem_Free(ctx->perl);
+	PyMem_RawFree(ctx->perl);
     }
     else {
 	/* fprintf(stderr, "still %d references left\n", ctx->perl->refcnt); */
-	ctx->perl->thread_done++;
+	ctx->perl->thread_done = TRUE;
     }
     ctx->perl = 0;
-    PyMem_Free(ctx);
+    PyMem_RawFree(ctx);
 }
 
 void
 thrd_ctx_init()
 {
-#ifdef WIN32 /* XXX free_thread_ctx() needs to be called in DllMain() */
-    if ((thrd_ctx_key = TlsAlloc()) == TLS_OUT_OF_INDEXES)
+#ifdef WIN32
+    Py_AtExit(python_finalized);
+    if ((thrd_ctx_key = FlsAlloc(fls_free_thread_ctx)) == FLS_OUT_OF_INDEXES)
 #else
     if (pthread_key_create(&thrd_ctx_key, (void*)free_thread_ctx))
 #endif
@@ -80,8 +101,8 @@ thrd_ctx_init()
 #ifdef BOOT_FROM_PERL
     {
 	dTHX;
-	refcounted_perl* p = (refcounted_perl*)PyMem_Malloc(sizeof(refcounted_perl));
-	thread_ctx* ctx = (thread_ctx*)PyMem_Malloc(sizeof(thread_ctx));
+	refcounted_perl* p = (refcounted_perl*)PyMem_RawMalloc(sizeof(refcounted_perl));
+	thread_ctx* ctx = (thread_ctx*)PyMem_RawMalloc(sizeof(thread_ctx));
 	if (!p || !ctx) {
 	    Py_FatalError("Can't allocate memory for thread context");
 	}
@@ -94,7 +115,7 @@ thrd_ctx_init()
 
 	ctx->perl = p;
 #ifdef WIN32
-	TlsSetValue(thrd_ctx_key, (void*)ctx);
+	FlsSetValue(thrd_ctx_key, (void*)ctx);
 #else
 	pthread_setspecific(thrd_ctx_key, (void*)ctx);
 #endif
@@ -102,23 +123,3 @@ thrd_ctx_init()
 #endif
 
 }
-
-#if defined(WIN32) && defined(MULTI_PERL)
-
-BOOL WINAPI
-DllMain(HINSTANCE hInstance, DWORD dwReason, DWORD lpReserved)
-{
-    BOOL ret = TRUE;
-    switch (dwReason) {
-    case DLL_THREAD_DETACH:
-	{
-	    thread_ctx* ctx = (thread_ctx*)TlsGetValue(thrd_ctx_key);
-	    if (ctx)
-		free_thread_ctx(ctx);
-	}
-	break;
-    }
-    return ret;
-}
-
-#endif

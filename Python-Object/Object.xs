@@ -544,16 +544,20 @@ PyObject_Str(o,...)
    PREINIT:
      dCTX;
      PyObject *str_o;
+     const char *str_s = NULL;
+     Py_ssize_t str_len;
    CODE:
      ASSERT_LOCK_PERL;
      ENTER_PYTHON;
      str_o = (ix == 1) ? PyObject_Str(o) : PyObject_Repr(o);
+     if (str_o && PyUnicode_Check(str_o))
+         str_s = PyUnicode_AsUTF8AndSize(str_o, &str_len);
      PERL_LOCK;
-     if (str_o && PyUnicode_Check(str_o)) {
-    RETVAL = newSVpvn(PyUnicode_AsUTF8(str_o),
-              PyUnicode_GetLength(str_o));
+     if (str_s) {
+    RETVAL = newSVpvn_flags(str_s, str_len, PyUnicode_IS_ASCII(str_o) ? 0 : SVf_UTF8);
      }
      else {
+    PyErr_Clear();
     RETVAL = newSV(0);
      }
      Py_XDECREF(str_o);
@@ -709,21 +713,24 @@ PyEval_CallObjectWithKeywords(o,...)
                         goto done;
 
                     ENTER_PERL;
-                    for (i = 0; i < items; i++) {
+                    for (i = 0; i < alen; i++) {
                         SV** svp;
+                        PyObject *item;
                         ASSERT_LOCK_PERL;
                         svp = av_fetch(av, i, 0);
+
+                        PYTHON_LOCK;
                         if (svp) {
-                            PyObject *item;
-
-                            PYTHON_LOCK;
                             item = sv2pyo(*svp);
-
-                            PERL_UNLOCK;
-                            PyTuple_SetItem(t1, i, item);
-
-                            ENTER_PERL;
                         }
+                        else {  /* hole in the array */
+                            Py_INCREF(Py_None);
+                            item = Py_None;
+                        }
+                        PERL_UNLOCK;
+                        PyTuple_SetItem(t1, i, item);
+
+                        ENTER_PERL;
                     }
                     alist = t1;
                 }
@@ -737,7 +744,9 @@ PyEval_CallObjectWithKeywords(o,...)
             kwdict = PerlPyObject_pyo_or_null(ST(2));
             if (kwdict) {
                 ENTER_PYTHON;
-                if (!PyDict_Check(alist)) { 
+                if (!PyDict_Check(kwdict)) {
+                    PyErr_SetString(PyExc_TypeError, "3rd argument must be a dictionary");
+                    goto done;
                 }
                 ENTER_PERL;
             }
@@ -757,25 +766,29 @@ PyEval_CallObjectWithKeywords(o,...)
                     while( (entry = hv_iternext(hv))) {
                         PyObject *key;
                         PyObject *val;
+                        int rc;
 
-                        I32 klen;
-                        char *kstr;
+                        SV* key_sv;
                         SV* val_sv;
 
                         ASSERT_LOCK_PERL;
-                        kstr = hv_iterkey(entry, &klen);
+                        key_sv = hv_iterkeysv(entry);
                         val_sv = hv_iterval(hv, entry);
 
                         ENTER_PYTHON;
-                        key = PyUnicode_FromStringAndSize(kstr, klen);
-                        if (key == NULL)
-                            goto done;
-
                         PERL_LOCK;
-                        val = sv2pyo(val_sv);
+                        key = sv2pyo(key_sv);
+                        val = key ? sv2pyo(val_sv) : NULL;
                         PERL_UNLOCK;
+                        if (val == NULL) {
+                            Py_XDECREF(key);
+                            goto done;
+                        }
 
-                        if (PyDict_SetItem(t2, key, val) == -1)
+                        rc = PyDict_SetItem(t2, key, val);
+                        Py_DECREF(key);
+                        Py_DECREF(val);
+                        if (rc == -1)
                             goto done;
                         ENTER_PERL;
                     }
@@ -790,6 +803,13 @@ PyEval_CallObjectWithKeywords(o,...)
         }
 
         ENTER_PYTHON;
+        if (alist == NULL) {
+            /* PyObject_Call() needs an args tuple */
+            t1 = PyTuple_New(0);
+            if (t1 == NULL)
+                goto done;
+            alist = t1;
+        }
         RETVAL = PyObject_Call(o, alist, kwdict);
         done:
             Py_XDECREF(t1);
@@ -931,6 +951,7 @@ as_string(self,...)
       PREINIT:
         dCTX;
     PyObject *str;
+    int utf8 = 0;
       CODE:
         ASSERT_LOCK_PERL;
         ENTER_PYTHON;
@@ -940,6 +961,7 @@ as_string(self,...)
         if (str && PyUnicode_Check(str)) {
         sv_catpv(RETVAL, "python.");
             sv_catpv(RETVAL, PyUnicode_AsUTF8(str));
+            utf8 |= !PyUnicode_IS_ASCII(str);
         }
         else
             sv_catpv(RETVAL, "python");
@@ -954,10 +976,13 @@ as_string(self,...)
         PERL_LOCK;
             sv_catpv(RETVAL, ": ");
             sv_catpv(RETVAL, PyUnicode_AsUTF8(str));
+            utf8 |= !PyUnicode_IS_ASCII(str);
             PERL_UNLOCK;
         }
         Py_XDECREF(str);
         ENTER_PERL;
+    if (utf8)
+        SvUTF8_on(RETVAL);
     if (*SvEND(RETVAL) != '\n')
         sv_catpvn(RETVAL, "\n", 1);
       OUTPUT:
@@ -1019,6 +1044,7 @@ Exception(...)
     Python::Err::UnicodeError = 25
     Python::Err::ValueError = 26
     Python::Err::ZeroDivisionError = 27
+    Python::Err::StandardError = 28
       PREINIT:
         dCTX;
     PyObject* e;
@@ -1050,12 +1076,12 @@ Exception(...)
     case 21: e = PyExc_SystemError; break;
     case 22: e = PyExc_SystemExit; break;
     case 23: e = PyExc_TypeError; break;
-#if PY_MAJOR_VERSION >= 1 && PY_MINOR_VERSION >= 6
     case 24: e = PyExc_UnboundLocalError; break;
     case 25: e = PyExc_UnicodeError; break;
-#endif
     case 26: e = PyExc_ValueError; break;
     case 27: e = PyExc_ZeroDivisionError; break;
+    /* StandardError is gone in Python 3 */
+    case 28: e = PyExc_Exception; break;
     default: croak("Bad exception selector (%d)", (int)ix); break;
     }
     if (items) {
@@ -1067,8 +1093,10 @@ Exception(...)
              else {
         arg = PerlPyObject_pyo_or_null(argsv);
              }
-            /* XXX should actually do a ISA test here */
-        RETVAL = boolSV(arg == e);
+        /* match subclasses too */
+        PYTHON_LOCK;
+        RETVAL = boolSV(arg && PyErr_GivenExceptionMatches(arg, e));
+        PYTHON_UNLOCK;
     }
     else {
         PYTHON_LOCK;

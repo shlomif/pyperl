@@ -33,19 +33,31 @@ pyo2sv(PyObject *o)
 	return newSV(0);
     }
     else if (PyUnicode_Check(o)) {
-	return newSVpvn(PyUnicode_AsUTF8(o), PyUnicode_GetLength(o));
-    }
-    else if (PyLong_Check(o)) {
-	return newSViv(PyLong_AsLong(o));
-    }
-    else if (PyLong_Check(o)) {
-	unsigned long tmp = PyLong_AsUnsignedLong(o);
-	if (tmp == (unsigned long)-1 && PyErr_Occurred()) {
-	    /* overflow, don't convert after all */
+	Py_ssize_t len;
+	const char *s = PyUnicode_AsUTF8AndSize(o, &len);
+	if (s == NULL) {
+	    /* lone surrogates */
 	    PyErr_Clear();
 	    return newPerlPyObject_inc(o);
 	}
-	return newSVuv(tmp);
+	return newSVpvn_flags(s, len, PyUnicode_IS_ASCII(o) ? 0 : SVf_UTF8);
+    }
+    else if (PyBytes_Check(o)) {
+	return newSVpvn(PyBytes_AS_STRING(o), PyBytes_GET_SIZE(o));
+    }
+    else if (PyLong_Check(o)) {
+	int overflow;
+	long long v = PyLong_AsLongLongAndOverflow(o, &overflow);
+	if (!overflow && !(v == -1 && PyErr_Occurred()))
+	    return newSViv((IV)v);
+	if (overflow > 0) {
+	    unsigned long long tmp = PyLong_AsUnsignedLongLong(o);
+	    if (!(tmp == (unsigned long long)-1 && PyErr_Occurred()))
+		return newSVuv((UV)tmp);
+	}
+	/* too big for IV/UV */
+	PyErr_Clear();
+	return newPerlPyObject_inc(o);
     }
     else if (PyFloat_Check(o)) {
 	return newSVnv(PyFloat_AsDouble(o));
@@ -64,6 +76,19 @@ pyo2sv(PyObject *o)
 }
 
 
+/* character strings (UTF8 flag) and ASCII become str, other byte strings bytes */
+static PyObject*
+pv2pyo(SV* sv, const char *s, STRLEN len)
+{
+    STRLEN i;
+    if (SvUTF8(sv))
+	return PyUnicode_DecodeUTF8(s, (Py_ssize_t)len, "surrogateescape");
+    for (i = 0; i < len; i++)
+	if (s[i] & 0x80)
+	    return PyBytes_FromStringAndSize(s, (Py_ssize_t)len);
+    return PyUnicode_DecodeASCII(s, (Py_ssize_t)len, NULL);
+}
+
 PyObject*
 sv2pyo(SV* sv)
 {
@@ -75,13 +100,17 @@ sv2pyo(SV* sv)
     if (SvPOK(sv)) {
 	STRLEN len;
 	char *s = SvPV(sv, len);
-	po = Py_BuildValue("s#", s, len);
+	po = pv2pyo(sv, s, len);
     }
     else if (SvNOK(sv)) {
 	po = Py_BuildValue("d", SvNV(sv));
     }
     else if (SvIOK(sv)) {
-	po = Py_BuildValue("l", SvIV(sv));
+	/* long is 32 bit on Win64 */
+	if (SvIsUV(sv))
+	    po = PyLong_FromUnsignedLongLong((unsigned long long)SvUV(sv));
+	else
+	    po = PyLong_FromLongLong((long long)SvIV(sv));
     }
     else if (SvROK(sv) && sv_derived_from(sv, "Python::Object")) {
         IV ival = SvIV(SvRV(sv));
@@ -111,7 +140,7 @@ sv2pyo(SV* sv)
 	PYTHON_UNLOCK;
 	s = SvPV(sv, len);
 	PYTHON_LOCK;
-	po = Py_BuildValue("s#", s, len);
+	po = pv2pyo(sv, s, len);
     }
 
     ASSERT_LOCK_BOTH;

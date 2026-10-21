@@ -8,3 +8,10 @@ include TODO
 include opts.pl
 include try_perlapi.pl
 recursive-include Python-Object *
+include MULTI_PERL
+include pyproject.toml
+include test.mak
+prune .venv
+prune build
+prune Python-Object/blib
+exclude Python-Object/Makefile Python-Object/MYMETA.* Python-Object/Object.c Python-Object/Object.o Python-Object/Object.bs Python-Object/pm_to_blib

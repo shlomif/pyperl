@@ -29,7 +29,7 @@ print("ok 5")
 try:
     print(h.get(42))
 except TypeError as v:
-    if str(v) != "get() argument 1 must be string or read-only buffer, not int":
+    if "int" not in str(v):
         print("not ", end=' ')
     print("ok 6")
 
@@ -40,11 +40,10 @@ print("ok 7")
 
 h["bar"] = 21
 
-# here we assume a certain order, which might get broken by another hash
-# algoritim or other internal changes.  In that case fix the tests below.
-if list(h.keys()) != ["bar", "foo"] or \
-   list(h.values()) != [21, 42] or \
-   list(h.items()) !=  [("bar", 21), ("foo", 42)]:
+# perl hash order is random
+if sorted(h.keys()) != ["bar", "foo"] or \
+   sorted(h.values()) != [21, 42] or \
+   sorted(h.items()) !=  [("bar", 21), ("foo", 42)]:
     print("not ", end=' ')
 print("ok 8")
 
@@ -52,7 +51,7 @@ if "baz" in h or "bar" not in h: print("not ")
 print("ok 9")
 
 h2 = h.copy()
-if id(h) == id(h2) or list(h.items()) != list(h2.items()): print("not ", end=' ')
+if id(h) == id(h2) or sorted(h.items()) != sorted(h2.items()): print("not ", end=' ')
 print("ok 10")
 
 h2.clear()

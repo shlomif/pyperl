@@ -8,7 +8,7 @@ print("1..14")
 def ok(a, b=None):
     return "a=" + str(a) + ", b=" + str(b)
 
-perl.eval("""
+perl.eval(r"""
 
 use Python qw(apply);
 
@@ -26,56 +26,56 @@ sub {
     # XXX For some strange reason =~ is not to force $@ to stingify, so
     # I had to help it with "$@" =~.
     # Hmmm, something to fix some other time :-(
-    print "not " unless "$@" =~ /^python\.<type 'exceptions.TypeError'>: ok\(\) takes at least 1 argument \(0 given\)/;
+    print "not " unless "$@" =~ /^python\.<class 'TypeError'>: ok\(\) missing 1 required positional argument: 'a'/;
     print "ok 1\n";
 
     eval {
        apply($f, undef);
     };
     #print $@;
-    print "not " unless "$@" =~ /^python\.<type 'exceptions.TypeError'>: ok\(\) takes at least 1 argument \(0 given\)/;
+    print "not " unless "$@" =~ /^python\.<class 'TypeError'>: ok\(\) missing 1 required positional argument: 'a'/;
     print "ok 2\n";
 
     eval {
        apply($f, undef, undef);
     };
     #print $@;
-    print "not " unless "$@" =~ /^python\.<type 'exceptions.TypeError'>: ok\(\) takes at least 1 argument \(0 given\)/;
+    print "not " unless "$@" =~ /^python\.<class 'TypeError'>: ok\(\) missing 1 required positional argument: 'a'/;
     print "ok 3\n";
 
     eval {
        apply($f, undef, undef, undef);
     };
     #print $@;
-    print "not " unless "$@" =~ /^Too many arguments at \(eval 1\) line \d+./;
+    print "not " unless "$@" =~ /^Too many arguments at \(eval \d+\) line \d+\./;
     print "ok 4\n";
 
     eval {
        apply($f, [1,2,3]);
     };
     #print $@;
-    print "not " unless "$@" =~ /^python\.<type 'exceptions.TypeError'>: ok\(\) takes at most 2 arguments \(3 given\)/;
+    print "not " unless "$@" =~ /^python\.<class 'TypeError'>: ok\(\) takes from 1 to 2 positional arguments but 3 were given/;
     print "ok 5\n";
 
     eval {
        apply($f, [], {b => 2});
     };
     #print $@;
-    print "not " unless "$@" =~ /^python\.<type 'exceptions.TypeError'>: ok\(\) takes at least 1 non-keyword argument \(0 given\)/;
+    print "not " unless "$@" =~ /^python\.<class 'TypeError'>: ok\(\) missing 1 required positional argument: 'a'/;
     print "ok 6\n";
 
     eval {
        apply($f, [1], {a => 2});
     };
     #print $@;
-    print "not " unless "$@" =~ /^python\.<type 'exceptions.TypeError'>: ok\(\) got multiple values for keyword argument 'a'/;
+    print "not " unless "$@" =~ /^python\.<class 'TypeError'>: ok\(\) got multiple values for argument 'a'/;
     print "ok 7\n";
 
     eval {
        apply($f, [], {a => 2, b => 3, c => 4});
     };
     #print $@;
-    print "not " unless "$@" =~ /^python\.<type 'exceptions.TypeError'>: ok\(\) got an unexpected keyword argument 'c'/;
+    print "not " unless "$@" =~ /^python\.<class 'TypeError'>: ok\(\) got an unexpected keyword argument 'c'/;
     print "ok 8\n";
 
     eval {

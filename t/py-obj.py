@@ -11,7 +11,7 @@ foo = Foo()
 foo.plain_list = [3, 2, 1]
 
 import perl
-perl.eval("""
+perl.eval(r"""
 # Test access to object from perl
 
 use Python qw(getattr hasattr setattr getitem);
@@ -70,7 +70,7 @@ sub foo {
    eval {
        $foo->plain_list("foo", "bar");
    };
-   print "not " unless $@ && $@ =~ /^python\.<type 'exceptions\.TypeError'>: 'list' object is not callable/;
+   print "not " unless $@ && $@ =~ /^python\.<class 'TypeError'>: 'list' object is not callable/;
    print "ok 13\n";
 
    # Strings are a sequences too, but they are not unwrapped.

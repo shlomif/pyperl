@@ -24,7 +24,7 @@ def perl_reduce(o):
 
 import copyreg
 copyreg.pickle(type(perl.get_ref("$")), perl_reduce, perl_restore)
-del(copy_reg)
+del(copyreg)
 
 from pickle import dumps, loads
 

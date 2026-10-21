@@ -37,10 +37,9 @@ class TestPyPerlHashOp(unittest.TestCase):
         self.assertEqual(self.h.get("foo"), 42)
 
     def test_hash_get_type_error(self):
-        try:
-            print((self.h.get(42)))
-        except TypeError as v:
-            self.assertEqual(str(v), "a bytes-like object is required, not 'int'")
+        with self.assertRaises(TypeError) as cm:
+            self.h.get(42)
+        self.assertEqual(str(cm.exception), "perl hash key must be string, not int")
 
     def test_hash_key_index(self):
         self.h["foo"] = 42
@@ -79,6 +78,23 @@ class TestPyPerlHashOp(unittest.TestCase):
         self.h["bar"] = 21
         del self.h["bar"]
         self.assertEqual(list(self.h.keys()), ["foo"])
+
+    def test_tied_hash(self):
+        h = perl.eval('require Tie::Hash; tie my %h, "Tie::StdHash"; %h = (a => 1, b => 2); \\%h')
+        self.assertEqual(sorted(h.keys()), ["a", "b"])
+        self.assertEqual(sorted(h.values()), [1, 2])
+        self.assertEqual(sorted(h.items()), [("a", 1), ("b", 2)])
+
+    def test_non_utf8_keys(self):
+        h = perl.eval('{ "\\xe9" => 1, "abc" => 2 }')
+        self.assertEqual(set(h.keys()), {b"\xe9", "abc"})
+        self.assertEqual(dict(h.items())[b"\xe9"], 1)
+        self.assertTrue(b"\xe9" in h)
+        self.assertEqual(h[b"\xe9"], 1)
+        h[b"\xff"] = 3
+        self.assertEqual(h.get(b"\xff"), 3)
+        del h[b"\xff"]
+        self.assertFalse(b"\xff" in h)
 
 def test_main():
     from test import test_support

@@ -22,9 +22,6 @@ Keyword behaviour should perlhaps be implemented in Python::funcall()
 instead of the AUTOLOAD.  That way it would also work when callable
 objects are called directly through "&{}" overloading.
 
-Python::Err::Exception(Python:Err::AssertionError) should return 1.
-Need issubclass() kind of check.
-
 Python::{getattr,getitem,funcall} should perhaps also unwrap sequences
 and mappings in list context so they get compatible with perl
 arrays/hashes.

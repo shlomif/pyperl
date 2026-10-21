@@ -127,12 +127,19 @@ languages as follows:
  Python                Perl
  --------------        ------------------------------------
  None            <---> undef
- string          <---> string
+ str             <---> character string (UTF8 flag on if not ASCII)
+ bytes           <---> byte string
  float           <---> number
- int             <---> int
- long            <---> int (or Python::Object if overflow)
+ int             <---> int (or Python::Object if overflow)
  perl ref object <---> ref
  object          <---> Python::Object
+
+A perl string becomes a C<str> when it has the UTF8 flag on or is plain
+ASCII, and C<bytes> otherwise (e.g. the result of pack() or
+Encode::encode_utf8()).  A perl string of characters below 256 can be
+stored without the UTF8 flag; call utf8::upgrade() on it to get a C<str>.
+Code passed to perl.eval() is treated as characters, as if under
+C<use utf8>.
 
 Python keyword arguments are passed to perl as key/value pairs after
 any other arguments.  Keywords that start with "C<__>" are reserved
@@ -312,8 +319,8 @@ Arrays can be repeated with the "*" operator.
 
 A perl hash wrapped up as a C<perl ref object> support the following
 methods that make it compatible with python dictionaries.  Note that
-the C<key> argument of perl hashes must be strings.  A C<TypeError>
-exception is raised if non-string keys are used.
+the C<key> argument of perl hashes must be C<str> or C<bytes>, mapped
+as above.  A C<TypeError> exception is raised for other keys.
 
 B<Note:> to populate an empty Perl hash, it is advisable to use its
 C<.update()> method rather than a Python C<for k,v> loop. Otherwise,

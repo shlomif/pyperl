@@ -21,7 +21,7 @@ extern void thrd_ctx_init(void);
 extern thread_ctx* get_thread_ctx(void);
 
 #define dCTX    thread_ctx* ctx = get_thread_ctx()
-#define dCTXP   dCTX; PerlInterpreter *my_perl = ctx->perl->my_perl
+#define dCTXP   dCTX; PerlInterpreter *my_perl PERL_UNUSED_DECL = ctx->perl->my_perl
 
 #else /* MULTI_PERL */
 

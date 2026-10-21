@@ -3,12 +3,12 @@
 import dbi
 
 for d in dbi.available_drivers():
-	print(d);
-	try:
-		for s in dbi.data_sources(d):
-			print("  ", s)
-	except:
-		pass
+    print(d)
+    try:
+        for s in dbi.data_sources(d):
+            print("  %s" % s)
+    except:
+        pass
 print("----")
 
 #$dbh = DBI->connect("DBI:mysql:database=test", "snake", "",
@@ -20,10 +20,10 @@ print("----")
 
 
 dbh = dbi.connect("DBI:mysql:database=test", "snake",
-		  RaiseError = 1,
-		  PrintError = 0,
-		  AutoCommit = 1,
-	         )
+          RaiseError = 1,
+          PrintError = 0,
+          AutoCommit = 1,
+             )
 
 try:
     dbh["AutoCommit"] = 0
@@ -35,8 +35,9 @@ rows = sth.execute()
 print(rows)
 
 while 1:
-	row = sth.fetchrow_tuple()
-        if not row: break
-	print(row)
+    row = sth.fetchrow_tuple()
+    if not row: 
+        break
+    print(row)
 
 dbh.disconnect()

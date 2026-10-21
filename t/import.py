@@ -13,7 +13,7 @@ my $string = Python::Import("string");
 print "not " unless $string->digits eq join("", 0..9);
 print "ok 2\n";
 
-print "not " unless $string->lower("ABC") eq "abc";
+print "not " unless $string->capwords("abc def") eq "Abc Def";
 print "ok 3\n";
 
 eval {

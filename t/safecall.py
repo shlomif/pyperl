@@ -10,7 +10,7 @@ print("1..3")
 import perl
 import re
 
-perl.eval("""
+perl.eval(r"""
 #line 14 "safecall"
 
 #$^W = 1;
@@ -20,7 +20,7 @@ sub compile {
     my($code) = @_;
 
     $code = "package main; sub do { " . $code . "}";
-    #print "[[$code]]\\n";
+    #print "[[$code]]\n";
 
     eval $code;
     die if $@;

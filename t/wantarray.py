@@ -22,15 +22,15 @@ sub foo {
 
 """)
 
-foo = perl.eval("\&foo")
+foo = perl.eval(r"\&foo")
 
 testno = 1
 
 def expect(res, expect):
     global testno
     if res != expect:
-	print("Expected", repr(expect), "got", repr(res))
-	print("not", end=' ')
+        print("Expected", repr(expect), "got", repr(res))
+        print("not", end=' ')
     print("ok", testno)
     testno = testno + 1
 
